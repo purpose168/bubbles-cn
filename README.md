@@ -1,221 +1,191 @@
 # Bubbles
 
 <p>
-  <img src="https://stuff.charm.sh/bubbles/bubbles-github.png" width="233" alt="The Bubbles Logo">
+  <img src="https://stuff.charm.sh/bubbles/bubbles-github.png" width="233" alt="Bubbles 标志">
 </p>
 
-[![Latest Release](https://img.shields.io/github/release/charmbracelet/bubbles.svg)](https://github.com/charmbracelet/bubbles/releases)
+[![最新版本](https://img.shields.io/github/release/charmbracelet/bubbles.svg)](https://github.com/charmbracelet/bubbles/releases)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/charmbracelet/bubbles)
-[![Build Status](https://github.com/charmbracelet/bubbles/workflows/build/badge.svg)](https://github.com/charmbracelet/bubbles/actions)
+[![构建状态](https://github.com/charmbracelet/bubbles/workflows/build/badge.svg)](https://github.com/charmbracelet/bubbles/actions)
 [![Go ReportCard](https://goreportcard.com/badge/charmbracelet/bubbles)](https://goreportcard.com/report/charmbracelet/bubbles)
 
-Some components for [Bubble Tea](https://github.com/charmbracelet/bubbletea)
-applications. These components are used in production in [Glow][glow], and [many other applications][otherstuff].
+Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于 [Glow][glow] 和 [许多其他应用程序][otherstuff]。
 
 [glow]: https://github.com/charmbracelet/glow
 [otherstuff]: https://github.com/charmbracelet/bubbletea/#bubble-tea-in-the-wild
 
 ## Spinner
 
-<img src="https://stuff.charm.sh/bubbles-examples/spinner.gif" width="400" alt="Spinner Example">
+<img src="https://stuff.charm.sh/bubbles-examples/spinner.gif" width="400" alt="Spinner 示例">
 
-A spinner, useful for indicating that some kind an operation is happening.
-There are a couple default ones, but you can also pass your own ”frames.”
+一个加载指示器，用于表示正在进行某种操作。有几个默认的样式，但你也可以传递自己的"帧"。
 
-- [Example code, basic spinner](https://github.com/charmbracelet/bubbletea/blob/main/examples/spinner/main.go)
-- [Example code, various spinners](https://github.com/charmbracelet/bubbletea/blob/main/examples/spinners/main.go)
+- [示例代码，基本 spinner](https://github.com/charmbracelet/bubbletea/blob/main/examples/spinner/main.go)
+- [示例代码，各种 spinner](https://github.com/charmbracelet/bubbletea/blob/main/examples/spinners/main.go)
 
-## Text Input
+## 文本输入
 
-<img src="https://stuff.charm.sh/bubbles-examples/textinput.gif" width="400" alt="Text Input Example">
+<img src="https://stuff.charm.sh/bubbles-examples/textinput.gif" width="400" alt="文本输入示例">
 
-A text input field, akin to an `<input type="text">` in HTML. Supports unicode,
-pasting, in-place scrolling when the value exceeds the width of the element and
-the common, and many customization options.
+一个文本输入字段，类似于 HTML 中的 `<input type="text">`。支持 Unicode、粘贴、当值超过元素宽度时的原位滚动，以及许多自定义选项。
 
-- [Example code, one field](https://github.com/charmbracelet/bubbletea/blob/main/examples/textinput/main.go)
-- [Example code, many fields](https://github.com/charmbracelet/bubbletea/blob/main/examples/textinputs/main.go)
+- [示例代码，单个字段](https://github.com/charmbracelet/bubbletea/blob/main/examples/textinput/main.go)
+- [示例代码，多个字段](https://github.com/charmbracelet/bubbletea/blob/main/examples/textinputs/main.go)
 
-## Text Area
+## 文本区域
 
-<img src="https://stuff.charm.sh/bubbles-examples/textarea.gif" width="400" alt="Text Area Example">
+<img src="https://stuff.charm.sh/bubbles-examples/textarea.gif" width="400" alt="文本区域示例">
 
-A text area field, akin to an `<textarea />` in HTML. Allows for input that
-spans multiple lines. Supports unicode, pasting, vertical scrolling when the
-value exceeds the width and height of the element, and many customization
-options.
+一个文本区域字段，类似于 HTML 中的 `<textarea />`。允许跨多行输入。支持 Unicode、粘贴、当值超过元素宽度和高度时的垂直滚动，以及许多自定义选项。
 
-- [Example code, chat input](https://github.com/charmbracelet/bubbletea/blob/main/examples/chat/main.go)
-- [Example code, story time input](https://github.com/charmbracelet/bubbletea/blob/main/examples/textarea/main.go)
+- [示例代码，聊天输入](https://github.com/charmbracelet/bubbletea/blob/main/examples/chat/main.go)
+- [示例代码，故事时间输入](https://github.com/charmbracelet/bubbletea/blob/main/examples/textarea/main.go)
 
-## Table
+## 表格
 
-<img src="https://stuff.charm.sh/bubbles-examples/table.gif" width="400" alt="Table Example">
+<img src="https://stuff.charm.sh/bubbles-examples/table.gif" width="400" alt="表格示例">
 
-A component for displaying and navigating tabular data (columns and rows).
-Supports vertical scrolling and many customization options.
+一个用于显示和导航表格数据（列和行）的组件。支持垂直滚动和许多自定义选项。
 
-- [Example code, countries and populations](https://github.com/charmbracelet/bubbletea/blob/main/examples/table/main.go)
+- [示例代码，国家和人口](https://github.com/charmbracelet/bubbletea/blob/main/examples/table/main.go)
 
-## Progress
+## 进度条
 
-<img src="https://stuff.charm.sh/bubbles-examples/progress.gif" width="800" alt="Progressbar Example">
+<img src="https://stuff.charm.sh/bubbles-examples/progress.gif" width="800" alt="进度条示例">
 
-A simple, customizable progress meter, with optional animation via
-[Harmonica][harmonica]. Supports solid and gradient fills. The empty and filled
-runes can be set to whatever you'd like. The percentage readout is customizable
-and can also be omitted entirely.
+一个简单、可定制的进度指示器，可通过 [Harmonica][harmonica] 实现可选的动画效果。支持纯色和渐变填充。空和填充的字符可以设置为你喜欢的任何内容。百分比读数可自定义，也可以完全省略。
 
-- [Animated example](https://github.com/charmbracelet/bubbletea/blob/main/examples/progress-animated/main.go)
-- [Static example](https://github.com/charmbracelet/bubbletea/blob/main/examples/progress-static/main.go)
+- [动画示例](https://github.com/charmbracelet/bubbletea/blob/main/examples/progress-animated/main.go)
+- [静态示例](https://github.com/charmbracelet/bubbletea/blob/main/examples/progress-static/main.go)
 
 [harmonica]: https://github.com/charmbracelet/harmonica
 
-## Paginator
+## 分页器
 
-<img src="https://stuff.charm.sh/bubbles-examples/pagination.gif" width="200" alt="Paginator Example">
+<img src="https://stuff.charm.sh/bubbles-examples/pagination.gif" width="200" alt="分页器示例">
 
-A component for handling pagination logic and optionally drawing pagination UI.
-Supports "dot-style" pagination (similar to what you might see on iOS) and
-numeric page numbering, but you could also just use this component for the
-logic and visualize pagination however you like.
+一个用于处理分页逻辑并可选绘制分页 UI 的组件。支持"点样式"分页（类似于你在 iOS 上看到的）和数字页码，但你也可以仅使用此组件的逻辑并以任何你喜欢的方式可视化分页。
 
-- [Example code](https://github.com/charmbracelet/bubbletea/blob/main/examples/paginator/main.go)
+- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/paginator/main.go)
 
-## Viewport
+## 视口
 
-<img src="https://stuff.charm.sh/bubbles-examples/viewport.gif" width="600" alt="Viewport Example">
+<img src="https://stuff.charm.sh/bubbles-examples/viewport.gif" width="600" alt="视口示例">
 
-A viewport for vertically scrolling content. Optionally includes standard
-pager keybindings and mouse wheel support. A high performance mode is available
-for applications which make use of the alternate screen buffer.
+一个用于垂直滚动内容的视口。可选包含标准分页器键绑定和鼠标滚轮支持。对于使用备用屏幕缓冲区的应用程序，提供高性能模式。
 
-- [Example code](https://github.com/charmbracelet/bubbletea/blob/main/examples/pager/main.go)
+- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/pager/main.go)
 
-This component is well complemented with [Reflow][reflow] for ANSI-aware
-indenting and text wrapping.
+此组件与 [Reflow][reflow] 配合使用效果良好，可实现 ANSI 感知的缩进和文本换行。
 
 [reflow]: https://github.com/muesli/reflow
 
-## List
+## 列表
 
-<img src="https://stuff.charm.sh/bubbles-examples/list.gif" width="600" alt="List Example">
+<img src="https://stuff.charm.sh/bubbles-examples/list.gif" width="600" alt="列表示例">
 
-A customizable, batteries-included component for browsing a set of items.
-Features pagination, fuzzy filtering, auto-generated help, an activity spinner,
-and status messages, all of which can be enabled and disabled as needed.
-Extrapolated from [Glow][glow].
+一个可定制、功能齐全的组件，用于浏览一组项目。具有分页、模糊过滤、自动生成帮助、活动指示器和状态消息等功能，所有这些功能都可以根据需要启用和禁用。源自 [Glow][glow]。
 
-- [Example code, default list](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-default/main.go)
-- [Example code, simple list](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-simple/main.go)
-- [Example code, all features](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-fancy/main.go)
+- [示例代码，默认列表](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-default/main.go)
+- [示例代码，简单列表](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-simple/main.go)
+- [示例代码，所有功能](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-fancy/main.go)
 
-## File Picker
+## 文件选择器
 
-<img src="https://vhs.charm.sh/vhs-yET2HNiJNEbyqaVfYuLnY.gif" width="600" alt="File picker example">
+<img src="https://vhs.charm.sh/vhs-yET2HNiJNEbyqaVfYuLnY.gif" width="600" alt="文件选择器示例">
 
-A customizable component for picking a file from the file system. Navigate
-through directories and select files, optionally limit to certain file
-extensions.
+一个用于从文件系统中选择文件的可定制组件。可以浏览目录并选择文件，可选限制为特定文件扩展名。
 
-- [Example code](https://github.com/charmbracelet/bubbletea/blob/main/examples/file-picker/main.go)
+- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/file-picker/main.go)
 
-## Timer
+## 计时器
 
-A simple, flexible component for counting down. The update frequency and output
-can be customized as you like.
+一个简单、灵活的倒计时组件。更新频率和输出可以根据你的需要进行自定义。
 
-<img src="https://stuff.charm.sh/bubbles-examples/timer.gif" width="400" alt="Timer example">
+<img src="https://stuff.charm.sh/bubbles-examples/timer.gif" width="400" alt="计时器示例">
 
-- [Example code](https://github.com/charmbracelet/bubbletea/blob/main/examples/timer/main.go)
+- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/timer/main.go)
 
-## Stopwatch
+## 秒表
 
-<img src="https://stuff.charm.sh/bubbles-examples/stopwatch.gif" width="400" alt="Stopwatch example">
+<img src="https://stuff.charm.sh/bubbles-examples/stopwatch.gif" width="400" alt="秒表示例">
 
-A simple, flexible component for counting up. The update frequency and output
-can be customized as you see fit.
+一个简单、灵活的计时组件。更新频率和输出可以根据你的需要进行自定义。
 
-- [Example code](https://github.com/charmbracelet/bubbletea/blob/main/examples/stopwatch/main.go)
+- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/stopwatch/main.go)
 
-## Help
+## 帮助
 
-<img src="https://stuff.charm.sh/bubbles-examples/help.gif" width="500" alt="Help Example">
+<img src="https://stuff.charm.sh/bubbles-examples/help.gif" width="500" alt="帮助示例">
 
-A customizable horizontal mini help view that automatically generates itself
-from your keybindings. It features single and multi-line modes, which the user
-can optionally toggle between. It will truncate gracefully if the terminal is
-too wide for the content.
+一个可定制的水平迷你帮助视图，可根据你的键绑定自动生成。它具有单行和多行模式，用户可以选择在两者之间切换。如果终端对于内容来说太宽，它会优雅地截断。
 
-- [Example code](https://github.com/charmbracelet/bubbletea/blob/main/examples/help/main.go)
+- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/help/main.go)
 
-## Key
+## 按键
 
-A non-visual component for managing keybindings. It’s useful for allowing users
-to remap keybindings as well as generating help views corresponding to your
-keybindings.
+一个用于管理键绑定的非可视化组件。它对于允许用户重新映射键绑定以及生成与你的键绑定相对应的帮助视图非常有用。
 
 ```go
+// KeyMap 定义了应用程序的键绑定映射
 type KeyMap struct {
-    Up key.Binding
-    Down key.Binding
+    Up key.Binding    // 向上移动的键绑定
+    Down key.Binding  // 向下移动的键绑定
 }
 
+// DefaultKeyMap 是默认的键绑定映射
 var DefaultKeyMap = KeyMap{
     Up: key.NewBinding(
-        key.WithKeys("k", "up"),        // actual keybindings
-        key.WithHelp("↑/k", "move up"), // corresponding help text
+        key.WithKeys("k", "up"),        // 实际的键绑定
+        key.WithHelp("↑/k", "向上移动"), // 对应的帮助文本
     ),
     Down: key.NewBinding(
-        key.WithKeys("j", "down"),
-        key.WithHelp("↓/j", "move down"),
+        key.WithKeys("j", "down"),      // 实际的键绑定
+        key.WithHelp("↓/j", "向下移动"),  // 对应的帮助文本
     ),
 }
 
+// Update 处理消息并更新模型状态
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     switch msg := msg.(type) {
     case tea.KeyMsg:
         switch {
         case key.Matches(msg, DefaultKeyMap.Up):
-            // The user pressed up
+            // 用户按下了向上键
         case key.Matches(msg, DefaultKeyMap.Down):
-            // The user pressed down
+            // 用户按下了向下键
         }
     }
     return m, nil
 }
 ```
 
-## There’s more where that came from
+## 更多精彩内容
 
-To check out community-maintained Bubbles see [Charm &
-Friends](https://github.com/charm-and-friends/additional-bubbles). Made a cool Bubble
-that you want to share?
-[PRs](https://github.com/charm-and-friends/additional-bubbles?tab=readme-ov-file#what-is-a-complete-project)
-are welcome!
+要查看社区维护的 Bubbles，请访问 [Charm & Friends](https://github.com/charm-and-friends/additional-bubbles)。制作了一个很酷的 Bubble 想分享？欢迎提交 [PR](https://github.com/charm-and-friends/additional-bubbles?tab=readme-ov-file#what-is-a-complete-project)！
 
-## Contributing
+## 贡献
 
-See [contributing][contribute].
+请参阅 [contributing][contribute]。
 
 [contribute]: https://github.com/charmbracelet/bubbles/contribute
 
-## Feedback
+## 反馈
 
-We’d love to hear your thoughts on this project. Feel free to drop us a note!
+我们很想听听你对这个项目的想法。随时给我们留言！
 
 - [Twitter](https://twitter.com/charmcli)
-- [The Fediverse](https://mastodon.social/@charmcli)
+- [联邦宇宙](https://mastodon.social/@charmcli)
 - [Discord](https://charm.sh/chat)
 
-## License
+## 许可证
 
 [MIT](https://github.com/charmbracelet/bubbletea/raw/main/LICENSE)
 
 ---
 
-Part of [Charm](https://charm.sh).
+属于 [Charm](https://charm.sh)。
 
-<a href="https://charm.sh/"><img alt="The Charm logo" src="https://stuff.charm.sh/charm-banner-next.jpg" width="400"></a>
+<a href="https://charm.sh/"><img alt="Charm 标志" src="https://stuff.charm.sh/charm-banner-next.jpg" width="400"></a>
 
 Charm热爱开源 • Charm loves open source
