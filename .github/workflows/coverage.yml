@@ -1,4 +1,4 @@
-name: coverage
+name: 代码覆盖率
 on: [push, pull_request]
 
 jobs:
@@ -11,15 +11,15 @@ jobs:
     env:
       GO111MODULE: "on"
     steps:
-      - name: Install Go
+      - name: 安装 Go
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Checkout code
+      - name: 检出代码
         uses: actions/checkout@v6
 
-      - name: Coverage
+      - name: 代码覆盖率
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

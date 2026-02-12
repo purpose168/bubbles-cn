@@ -1,39 +1,38 @@
 package list
 
-import "github.com/charmbracelet/bubbles/key"
+import "github.com/purpose168/bubbles-cn/key"
 
-// KeyMap defines keybindings. It satisfies to the help.KeyMap interface, which
-// is used to render the menu.
+// KeyMap 定义了按键绑定。它满足 help.KeyMap 接口，用于渲染菜单。
 type KeyMap struct {
-	// Keybindings used when browsing the list.
-	CursorUp    key.Binding
-	CursorDown  key.Binding
-	NextPage    key.Binding
-	PrevPage    key.Binding
-	GoToStart   key.Binding
-	GoToEnd     key.Binding
-	Filter      key.Binding
-	ClearFilter key.Binding
+	// 浏览列表时使用的按键绑定。
+	CursorUp    key.Binding // 光标向上
+	CursorDown  key.Binding // 光标向下
+	NextPage    key.Binding // 下一页
+	PrevPage    key.Binding // 上一页
+	GoToStart   key.Binding // 前往开始
+	GoToEnd     key.Binding // 前往结束
+	Filter      key.Binding // 过滤器
+	ClearFilter key.Binding // 清除过滤器
 
-	// Keybindings used when setting a filter.
-	CancelWhileFiltering key.Binding
-	AcceptWhileFiltering key.Binding
+	// 设置过滤器时使用的按键绑定。
+	CancelWhileFiltering key.Binding // 取消过滤
+	AcceptWhileFiltering key.Binding // 接受过滤
 
-	// Help toggle keybindings.
-	ShowFullHelp  key.Binding
-	CloseFullHelp key.Binding
+	// 帮助切换按键绑定。
+	ShowFullHelp  key.Binding // 显示完整帮助
+	CloseFullHelp key.Binding // 关闭完整帮助
 
-	// The quit keybinding. This won't be caught when filtering.
-	Quit key.Binding
+	// 退出按键绑定。在过滤时不会被捕获。
+	Quit key.Binding // 退出
 
-	// The quit-no-matter-what keybinding. This will be caught when filtering.
-	ForceQuit key.Binding
+	// 强制退出按键绑定。在过滤时也会被捕获。
+	ForceQuit key.Binding // 强制退出
 }
 
-// DefaultKeyMap returns a default set of keybindings.
+// DefaultKeyMap 返回一组默认的按键绑定。
 func DefaultKeyMap() KeyMap {
 	return KeyMap{
-		// Browsing.
+		// 浏览。
 		CursorUp: key.NewBinding(
 			key.WithKeys("up", "k"),
 			key.WithHelp("↑/k", "up"),
@@ -67,7 +66,7 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("esc", "clear filter"),
 		),
 
-		// Filtering.
+		// 过滤。
 		CancelWhileFiltering: key.NewBinding(
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "cancel"),
@@ -77,7 +76,7 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("enter", "apply filter"),
 		),
 
-		// Toggle help.
+		// 切换帮助。
 		ShowFullHelp: key.NewBinding(
 			key.WithKeys("?"),
 			key.WithHelp("?", "more"),
@@ -87,7 +86,7 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("?", "close help"),
 		),
 
-		// Quitting.
+		// 退出。
 		Quit: key.NewBinding(
 			key.WithKeys("q", "esc"),
 			key.WithHelp("q", "quit"),

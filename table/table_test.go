@@ -4,27 +4,29 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/viewport"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/exp/golden"
+	"github.com/purpose168/bubbles-cn/help"
+	"github.com/purpose168/bubbles-cn/viewport"
+	"github.com/purpose168/charm-experimental-packages-cn/ansi"
+	"github.com/purpose168/charm-experimental-packages-cn/exp/golden"
+	lipgloss "github.com/purpose168/lipgloss-cn"
 )
 
+// testCols 测试用的列定义
 var testCols = []Column{
 	{Title: "col1", Width: 10},
 	{Title: "col2", Width: 10},
 	{Title: "col3", Width: 10},
 }
 
+// TestNew 测试 New 函数
 func TestNew(t *testing.T) {
 	tests := map[string]struct {
-		opts []Option
-		want Model
+		opts []Option // 选项
+		want Model    // 期望的模型
 	}{
-		"Default": {
+		"Default": { // 默认情况
 			want: Model{
-				// Default fields
+				// Default fields 默认字段
 				cursor:   0,
 				viewport: viewport.New(0, 20),
 				KeyMap:   DefaultKeyMap(),
@@ -32,7 +34,7 @@ func TestNew(t *testing.T) {
 				styles:   DefaultStyles(),
 			},
 		},
-		"WithColumns": {
+		"WithColumns": { // 设置列
 			opts: []Option{
 				WithColumns([]Column{
 					{Title: "Foo", Width: 1},
@@ -40,21 +42,21 @@ func TestNew(t *testing.T) {
 				}),
 			},
 			want: Model{
-				// Default fields
+				// Default fields 默认字段
 				cursor:   0,
 				viewport: viewport.New(0, 20),
 				KeyMap:   DefaultKeyMap(),
 				Help:     help.New(),
 				styles:   DefaultStyles(),
 
-				// Modified fields
+				// Modified fields 修改的字段
 				cols: []Column{
 					{Title: "Foo", Width: 1},
 					{Title: "Bar", Width: 2},
 				},
 			},
 		},
-		"WithColumns; WithRows": {
+		"WithColumns; WithRows": { // 设置列和行
 			opts: []Option{
 				WithColumns([]Column{
 					{Title: "Foo", Width: 1},
@@ -66,14 +68,14 @@ func TestNew(t *testing.T) {
 				}),
 			},
 			want: Model{
-				// Default fields
+				// Default fields 默认字段
 				cursor:   0,
 				viewport: viewport.New(0, 20),
 				KeyMap:   DefaultKeyMap(),
 				Help:     help.New(),
 				styles:   DefaultStyles(),
 
-				// Modified fields
+				// Modified fields 修改的字段
 				cols: []Column{
 					{Title: "Foo", Width: 1},
 					{Title: "Bar", Width: 2},
@@ -84,81 +86,84 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
-		"WithHeight": {
+		"WithHeight": { // 设置高度
 			opts: []Option{
 				WithHeight(10),
 			},
 			want: Model{
-				// Default fields
+				// Default fields 默认字段
 				cursor: 0,
 				KeyMap: DefaultKeyMap(),
 				Help:   help.New(),
 				styles: DefaultStyles(),
 
-				// Modified fields
+				// Modified fields 修改的字段
 				// Viewport height is 1 less than the provided height when no header is present since lipgloss.Height adds 1
+				// 当没有表头时，视口高度比提供的高度少 1，因为 lipgloss.Height 会加 1
 				viewport: viewport.New(0, 9),
 			},
 		},
-		"WithWidth": {
+		"WithWidth": { // 设置宽度
 			opts: []Option{
 				WithWidth(10),
 			},
 			want: Model{
-				// Default fields
+				// Default fields 默认字段
 				cursor: 0,
 				KeyMap: DefaultKeyMap(),
 				Help:   help.New(),
 				styles: DefaultStyles(),
 
-				// Modified fields
+				// Modified fields 修改的字段
 				// Viewport height is 1 less than the provided height when no header is present since lipgloss.Height adds 1
+				// 当没有表头时，视口高度比提供的高度少 1，因为 lipgloss.Height 会加 1
 				viewport: viewport.New(10, 20),
 			},
 		},
-		"WithFocused": {
+		"WithFocused": { // 设置聚焦状态
 			opts: []Option{
 				WithFocused(true),
 			},
 			want: Model{
-				// Default fields
+				// Default fields 默认字段
 				cursor:   0,
 				viewport: viewport.New(0, 20),
 				KeyMap:   DefaultKeyMap(),
 				Help:     help.New(),
 				styles:   DefaultStyles(),
 
-				// Modified fields
+				// Modified fields 修改的字段
 				focus: true,
 			},
 		},
-		"WithStyles": {
+		"WithStyles": { // 设置样式
 			opts: []Option{
 				WithStyles(Styles{}),
 			},
 			want: Model{
-				// Default fields
+				// Default fields 默认字段
 				cursor:   0,
 				viewport: viewport.New(0, 20),
 				KeyMap:   DefaultKeyMap(),
 				Help:     help.New(),
+				styles:   DefaultStyles(),
 
-				// Modified fields
+				// Modified fields 修改的字段
 				styles: Styles{},
 			},
 		},
-		"WithKeyMap": {
+		"WithKeyMap": { // 设置键映射
 			opts: []Option{
 				WithKeyMap(KeyMap{}),
 			},
 			want: Model{
-				// Default fields
+				// Default fields 默认字段
 				cursor:   0,
 				viewport: viewport.New(0, 20),
 				Help:     help.New(),
 				styles:   DefaultStyles(),
 
-				// Modified fields
+				// Modified fields 修改的字段
 				KeyMap: KeyMap{},
 			},
 		},
@@ -177,6 +182,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
+// TestModel_FromValues 测试从值创建表格
 func TestModel_FromValues(t *testing.T) {
 	input := "foo1,bar1\nfoo2,bar2\nfoo3,bar3"
 	table := New(WithColumns([]Column{{Title: "Foo"}, {Title: "Bar"}}))
@@ -196,6 +202,7 @@ func TestModel_FromValues(t *testing.T) {
 	}
 }
 
+// TestModel_FromValues_WithTabSeparator 测试使用制表符分隔符从值创建表格
 func TestModel_FromValues_WithTabSeparator(t *testing.T) {
 	input := "foo1.\tbar1\nfoo,bar,baz\tbar,2"
 	table := New(WithColumns([]Column{{Title: "Foo"}, {Title: "Bar"}}))
@@ -214,14 +221,15 @@ func TestModel_FromValues_WithTabSeparator(t *testing.T) {
 	}
 }
 
+// TestModel_RenderRow 测试渲染行
 func TestModel_RenderRow(t *testing.T) {
 	tests := []struct {
-		name     string
-		table    *Model
-		expected string
+		name     string // 测试名称
+		table    *Model // 表格模型
+		expected string // 期望的输出
 	}{
 		{
-			name: "simple row",
+			name: "simple row", // 简单行
 			table: &Model{
 				rows:   []Row{{"Foooooo", "Baaaaar", "Baaaaaz"}},
 				cols:   testCols,
@@ -230,7 +238,7 @@ func TestModel_RenderRow(t *testing.T) {
 			expected: "Foooooo   Baaaaar   Baaaaaz   ",
 		},
 		{
-			name: "simple row with truncations",
+			name: "simple row with truncations", // 带截断的简单行
 			table: &Model{
 				rows:   []Row{{"Foooooooooo", "Baaaaaaaaar", "Quuuuuuuuux"}},
 				cols:   testCols,
@@ -239,7 +247,7 @@ func TestModel_RenderRow(t *testing.T) {
 			expected: "Foooooooo…Baaaaaaaa…Quuuuuuuu…",
 		},
 		{
-			name: "simple row avoiding truncations",
+			name: "simple row avoiding truncations", // 避免截断的简单行
 			table: &Model{
 				rows:   []Row{{"Fooooooooo", "Baaaaaaaar", "Quuuuuuuux"}},
 				cols:   testCols,
@@ -258,8 +266,9 @@ func TestModel_RenderRow(t *testing.T) {
 	}
 }
 
+// TestTableAlignment 测试表格对齐
 func TestTableAlignment(t *testing.T) {
-	t.Run("No border", func(t *testing.T) {
+	t.Run("No border", func(t *testing.T) { // 无边框
 		biscuits := New(
 			WithHeight(5),
 			WithColumns([]Column{
@@ -276,7 +285,7 @@ func TestTableAlignment(t *testing.T) {
 		got := ansi.Strip(biscuits.View())
 		golden.RequireEqual(t, []byte(got))
 	})
-	t.Run("With border", func(t *testing.T) {
+	t.Run("With border", func(t *testing.T) { // 带边框
 		baseStyle := lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderForeground(lipgloss.Color("240"))
@@ -307,13 +316,14 @@ func TestTableAlignment(t *testing.T) {
 	})
 }
 
+// TestCursorNavigation 测试光标导航
 func TestCursorNavigation(t *testing.T) {
 	tests := map[string]struct {
-		rows   []Row
-		action func(*Model)
-		want   int
+		rows   []Row        // 行数据
+		action func(*Model) // 执行的操作
+		want   int          // 期望的光标位置
 	}{
-		"New": {
+		"New": { // 新建
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -322,7 +332,7 @@ func TestCursorNavigation(t *testing.T) {
 			action: func(_ *Model) {},
 			want:   0,
 		},
-		"MoveDown": {
+		"MoveDown": { // 向下移动
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -334,7 +344,7 @@ func TestCursorNavigation(t *testing.T) {
 			},
 			want: 2,
 		},
-		"MoveUp": {
+		"MoveUp": { // 向上移动
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -347,7 +357,7 @@ func TestCursorNavigation(t *testing.T) {
 			},
 			want: 1,
 		},
-		"GotoBottom": {
+		"GotoBottom": { // 跳转到底部
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -359,7 +369,7 @@ func TestCursorNavigation(t *testing.T) {
 			},
 			want: 3,
 		},
-		"GotoTop": {
+		"GotoTop": { // 跳转到顶部
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -372,7 +382,7 @@ func TestCursorNavigation(t *testing.T) {
 			},
 			want: 0,
 		},
-		"SetCursor": {
+		"SetCursor": { // 设置光标
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -384,7 +394,7 @@ func TestCursorNavigation(t *testing.T) {
 			},
 			want: 2,
 		},
-		"MoveDown with overflow": {
+		"MoveDown with overflow": { // 向下移动超出范围
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -396,7 +406,7 @@ func TestCursorNavigation(t *testing.T) {
 			},
 			want: 3,
 		},
-		"MoveUp with overflow": {
+		"MoveUp with overflow": { // 向上移动超出范围
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -409,7 +419,7 @@ func TestCursorNavigation(t *testing.T) {
 			},
 			want: 0,
 		},
-		"Blur does not stop movement": {
+		"Blur does not stop movement": { // 失焦不阻止移动
 			rows: []Row{
 				{"r1"},
 				{"r2"},
@@ -436,6 +446,7 @@ func TestCursorNavigation(t *testing.T) {
 	}
 }
 
+// TestModel_SetRows 测试设置行
 func TestModel_SetRows(t *testing.T) {
 	table := New(WithColumns(testCols))
 
@@ -455,6 +466,7 @@ func TestModel_SetRows(t *testing.T) {
 	}
 }
 
+// TestModel_SetColumns 测试设置列
 func TestModel_SetColumns(t *testing.T) {
 	table := New()
 
@@ -474,18 +486,20 @@ func TestModel_SetColumns(t *testing.T) {
 	}
 }
 
+// TestModel_View 测试表格视图
 func TestModel_View(t *testing.T) {
 	tests := map[string]struct {
-		modelFunc func() Model
-		skip      bool
+		modelFunc func() Model // 模型生成函数
+		skip      bool         // 是否跳过测试
 	}{
 		// TODO(?): should the view/output of empty tables use the same default height? (this has height 21)
-		"Empty": {
+		// TODO(?): 空表格的视图/输出是否应该使用相同的默认高度？（这里的高度是 21）
+		"Empty": { // 空表格
 			modelFunc: func() Model {
 				return New()
 			},
 		},
-		"Single row and column": {
+		"Single row and column": { // 单行单列
 			modelFunc: func() Model {
 				return New(
 					WithColumns([]Column{
@@ -497,7 +511,7 @@ func TestModel_View(t *testing.T) {
 				)
 			},
 		},
-		"Multiple rows and columns": {
+		"Multiple rows and columns": { // 多行多列
 			modelFunc: func() Model {
 				return New(
 					WithColumns([]Column{
@@ -514,7 +528,8 @@ func TestModel_View(t *testing.T) {
 			},
 		},
 		// TODO(fix): since the table height is tied to the viewport height, adding vertical padding to the headers' height directly increases the table height.
-		"Extra padding": {
+		// TODO(fix): 由于表格高度与视口高度相关联，为表头高度添加垂直填充会直接增加表格高度。
+		"Extra padding": { // 额外填充
 			modelFunc: func() Model {
 				s := DefaultStyles()
 				s.Header = lipgloss.NewStyle().Padding(2, 2)
@@ -536,7 +551,7 @@ func TestModel_View(t *testing.T) {
 				)
 			},
 		},
-		"No padding": {
+		"No padding": { // 无填充
 			modelFunc: func() Model {
 				s := DefaultStyles()
 				s.Header = lipgloss.NewStyle()
@@ -559,7 +574,8 @@ func TestModel_View(t *testing.T) {
 			},
 		},
 		// TODO(?): the total height is modified with borderd headers, however not with bordered cells. Is this expected/desired?
-		"Bordered headers": {
+		// TODO(?): 带边框的表头会修改总高度，但带边框的单元格不会。这是预期的/期望的吗？
+		"Bordered headers": { // 带边框的表头
 			modelFunc: func() Model {
 				return New(
 					WithColumns([]Column{
@@ -579,7 +595,8 @@ func TestModel_View(t *testing.T) {
 			},
 		},
 		// TODO(fix): Headers are not horizontally aligned with cells due to the border adding width to the cells.
-		"Bordered cells": {
+		// TODO(fix): 由于边框增加了单元格的宽度，表头与单元格在水平方向上不对齐。
+		"Bordered cells": { // 带边框的单元格
 			modelFunc: func() Model {
 				return New(
 					WithColumns([]Column{
@@ -598,7 +615,7 @@ func TestModel_View(t *testing.T) {
 				)
 			},
 		},
-		"Manual height greater than rows": {
+		"Manual height greater than rows": { // 手动高度大于行数
 			modelFunc: func() Model {
 				return New(
 					WithHeight(6),
@@ -615,7 +632,7 @@ func TestModel_View(t *testing.T) {
 				)
 			},
 		},
-		"Manual height less than rows": {
+		"Manual height less than rows": { // 手动高度小于行数
 			modelFunc: func() Model {
 				return New(
 					WithHeight(2),
@@ -633,7 +650,8 @@ func TestModel_View(t *testing.T) {
 			},
 		},
 		// TODO(fix): spaces are added to the right of the viewport to fill the width, but the headers end as though they are not aware of the width.
-		"Manual width greater than columns": {
+		// TODO(fix): 视口右侧添加空格以填充宽度，但表头结束时似乎不知道宽度。
+		"Manual width greater than columns": { // 手动宽度大于列宽
 			modelFunc: func() Model {
 				return New(
 					WithWidth(80),
@@ -652,7 +670,9 @@ func TestModel_View(t *testing.T) {
 		},
 		// TODO(fix): Setting the table width does not affect the total headers' width. Cells are wrapped.
 		// 	Headers are not affected. Truncation/resizing should match lipgloss.table functionality.
-		"Manual width less than columns": {
+		// TODO(fix): 设置表格宽度不会影响表头的总宽度。单元格会换行。
+		// 	表头不受影响。截断/调整大小应该与 lipgloss.table 功能匹配。
+		"Manual width less than columns": { // 手动宽度小于列宽
 			modelFunc: func() Model {
 				return New(
 					WithWidth(30),
@@ -670,7 +690,7 @@ func TestModel_View(t *testing.T) {
 			},
 			skip: true,
 		},
-		"Modified viewport height": {
+		"Modified viewport height": { // 修改视口高度
 			modelFunc: func() Model {
 				m := New(
 					WithColumns([]Column{
@@ -708,6 +728,7 @@ func TestModel_View(t *testing.T) {
 }
 
 // TODO: Fix table to make this test will pass.
+// TODO: 修复表格以使此测试通过。
 func TestModel_View_CenteredInABox(t *testing.T) {
 	t.Skip()
 

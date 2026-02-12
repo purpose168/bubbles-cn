@@ -1,38 +1,38 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: 问题报告
+about: 创建报告以帮助我们改进
 title: ''
 labels: ''
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**描述 bug**
+清晰简洁地描述 bug 是什么。
 
-**Setup**
-Please complete the following information along with version numbers, if applicable.
- - OS [e.g. Ubuntu, macOS]
- - Shell [e.g. zsh, fish]
- - Terminal Emulator [e.g. kitty, iterm]
- - Terminal Multiplexer [e.g. tmux]
- - Locale [e.g. en_US.UTF-8, zh_CN.UTF-8, etc.]
+**环境设置**
+请填写以下信息，如果适用，请包含版本号。
+ - 操作系统 [例如：Ubuntu, macOS]
+ - Shell [例如：zsh, fish]
+ - 终端模拟器 [例如：kitty, iterm]
+ - 终端复用器 [例如：tmux]
+ - 语言环境 [例如：en_US.UTF-8, zh_CN.UTF-8 等]
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**复现步骤**
+复现行为的步骤：
+1. 转到 '...'
+2. 点击 '....'
+3. 向下滚动到 '....'
+4. 查看错误
 
-**Source Code**
-Please include source code if needed to reproduce the behavior. 
+**源代码**
+如果需要复现行为，请包含源代码。
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**预期行为**
+清晰简洁地描述您预期发生的情况。
 
-**Screenshots**
-Add screenshots to help explain your problem.
+**截图**
+添加截图以帮助解释您的问题。
 
-**Additional context**
-Add any other context about the problem here.
+**附加信息**
+在此处添加关于问题的任何其他上下文信息。

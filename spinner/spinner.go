@@ -1,66 +1,76 @@
-// Package spinner provides a spinner component for Bubble Tea applications.
+// Package spinner 为 Bubble Tea 应用程序提供一个加载动画组件。
 package spinner
 
 import (
 	"sync/atomic"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "github.com/purpose168/bubbletea-cn"
+	lipgloss "github.com/purpose168/lipgloss-cn"
 )
 
-// Internal ID management. Used during animating to ensure that frame messages
-// are received only by spinner components that sent them.
+// 内部 ID 管理。在动画过程中使用，以确保帧消息仅由发送它们的加载动画组件接收。
 var lastID int64
 
+// nextID 生成下一个唯一的 ID
 func nextID() int {
 	return int(atomic.AddInt64(&lastID, 1))
 }
 
-// Spinner is a set of frames used in animating the spinner.
+// Spinner 是一组用于加载动画的帧。
 type Spinner struct {
-	Frames []string
-	FPS    time.Duration
+	Frames []string      // 帧序列
+	FPS    time.Duration // 帧率（每秒帧数）
 }
 
-// Some spinners to choose from. You could also make your own.
+// 一些可供选择的加载动画。您也可以创建自己的加载动画。
 var (
+	// Line 线条加载动画
 	Line = Spinner{
 		Frames: []string{"|", "/", "-", "\\"},
 		FPS:    time.Second / 10, //nolint:mnd
 	}
+	// Dot 点加载动画
 	Dot = Spinner{
 		Frames: []string{"⣾ ", "⣽ ", "⣻ ", "⢿ ", "⡿ ", "⣟ ", "⣯ ", "⣷ "},
 		FPS:    time.Second / 10, //nolint:mnd
 	}
+	// MiniDot 小点加载动画
 	MiniDot = Spinner{
 		Frames: []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 		FPS:    time.Second / 12, //nolint:mnd
 	}
+	// Jump 跳跃加载动画
 	Jump = Spinner{
 		Frames: []string{"⢄", "⢂", "⢁", "⡁", "⡈", "⡐", "⡠"},
 		FPS:    time.Second / 10, //nolint:mnd
 	}
+	// Pulse 脉冲加载动画
 	Pulse = Spinner{
 		Frames: []string{"█", "▓", "▒", "░"},
 		FPS:    time.Second / 8, //nolint:mnd
 	}
+	// Points 点加载动画
 	Points = Spinner{
 		Frames: []string{"∙∙∙", "●∙∙", "∙●∙", "∙∙●"},
 		FPS:    time.Second / 7, //nolint:mnd
 	}
+	// Globe 地球加载动画
 	Globe = Spinner{
 		Frames: []string{"🌍", "🌎", "🌏"},
 		FPS:    time.Second / 4, //nolint:mnd
 	}
+	// Moon 月亮加载动画
 	Moon = Spinner{
 		Frames: []string{"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"},
 		FPS:    time.Second / 8, //nolint:mnd
 	}
+	// Monkey 猴子加载动画
 	Monkey = Spinner{
 		Frames: []string{"🙈", "🙉", "🙊"},
 		FPS:    time.Second / 3, //nolint:mnd
 	}
+	// Meter 仪表盘加载动画
 	Meter = Spinner{
 		Frames: []string{
 			"▱▱▱",
@@ -73,40 +83,42 @@ var (
 		},
 		FPS: time.Second / 7, //nolint:mnd
 	}
+	// Hamburger 汉堡加载动画
 	Hamburger = Spinner{
 		Frames: []string{"☱", "☲", "☴", "☲"},
 		FPS:    time.Second / 3, //nolint:mnd
 	}
+	// Ellipsis 省略号加载动画
 	Ellipsis = Spinner{
 		Frames: []string{"", ".", "..", "..."},
 		FPS:    time.Second / 3, //nolint:mnd
 	}
 )
 
-// Model contains the state for the spinner. Use New to create new models
-// rather than using Model as a struct literal.
+// Model 包含加载动画的状态。使用 New 来创建新模型，
+// 而不是将 Model 用作结构体字面量。
 type Model struct {
-	// Spinner settings to use. See type Spinner.
+	// Spinner 设置。参见类型 Spinner。
 	Spinner Spinner
 
-	// Style sets the styling for the spinner. Most of the time you'll just
-	// want foreground and background coloring, and potentially some padding.
+	// Style 设置加载动画的样式。大多数情况下，您只需要
+	// 前景色和背景色，以及可能的一些内边距。
 	//
-	// For an introduction to styling with Lip Gloss see:
+	// 有关使用 Lip Gloss 进行样式的介绍，请参阅：
 	// https://github.com/charmbracelet/lipgloss
 	Style lipgloss.Style
 
-	frame int
-	id    int
-	tag   int
+	frame int // 当前帧索引
+	id    int // 唯一标识符
+	tag   int // 标签，用于防止消息过多
 }
 
-// ID returns the spinner's unique ID.
+// ID 返回加载动画的唯一 ID。
 func (m Model) ID() int {
 	return m.id
 }
 
-// New returns a model with default values.
+// New 返回一个具有默认值的模型。
 func New(opts ...Option) Model {
 	m := Model{
 		Spinner: Line,
@@ -120,31 +132,29 @@ func New(opts ...Option) Model {
 	return m
 }
 
-// NewModel returns a model with default values.
+// NewModel 返回一个具有默认值的模型。
 //
-// Deprecated: use [New] instead.
+// 已弃用：请改用 [New]。
 var NewModel = New
 
-// TickMsg indicates that the timer has ticked and we should render a frame.
+// TickMsg 表示计时器已触发，我们应该渲染一帧。
 type TickMsg struct {
-	Time time.Time
-	tag  int
-	ID   int
+	Time time.Time // 触发时间
+	tag  int       // 标签
+	ID   int       // 加载动画 ID
 }
 
-// Update is the Tea update function.
+// Update 是 Tea 更新函数。
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case TickMsg:
-		// If an ID is set, and the ID doesn't belong to this spinner, reject
-		// the message.
+		// 如果设置了 ID，并且该 ID 不属于此加载动画，则拒绝该消息。
 		if msg.ID > 0 && msg.ID != m.id {
 			return m, nil
 		}
 
-		// If a tag is set, and it's not the one we expect, reject the message.
-		// This prevents the spinner from receiving too many messages and
-		// thus spinning too fast.
+		// 如果设置了标签，并且它不是我们期望的标签，则拒绝该消息。
+		// 这可以防止加载动画接收过多消息，从而导致旋转过快。
 		if msg.tag > 0 && msg.tag != m.tag {
 			return m, nil
 		}
@@ -161,7 +171,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 }
 
-// View renders the model's view.
+// View 渲染模型的视图。
 func (m Model) View() string {
 	if m.frame >= len(m.Spinner.Frames) {
 		return "(error)"
@@ -170,16 +180,14 @@ func (m Model) View() string {
 	return m.Style.Render(m.Spinner.Frames[m.frame])
 }
 
-// Tick is the command used to advance the spinner one frame. Use this command
-// to effectively start the spinner.
+// Tick 是用于推进加载动画一帧的命令。使用此命令来有效地启动加载动画。
 func (m Model) Tick() tea.Msg {
 	return TickMsg{
-		// The time at which the tick occurred.
+		// 触发发生的时间。
 		Time: time.Now(),
 
-		// The ID of the spinner that this message belongs to. This can be
-		// helpful when routing messages, however bear in mind that spinners
-		// will ignore messages that don't contain ID by default.
+		// 此消息所属的加载动画的 ID。这在路由消息时很有帮助，
+		// 但请记住，默认情况下加载动画将忽略不包含 ID 的消息。
 		ID: m.id,
 
 		tag: m.tag,
@@ -196,27 +204,26 @@ func (m Model) tick(id, tag int) tea.Cmd {
 	})
 }
 
-// Tick is the command used to advance the spinner one frame. Use this command
-// to effectively start the spinner.
+// Tick 是用于推进加载动画一帧的命令。使用此命令来有效地启动加载动画。
 //
-// Deprecated: Use [Model.Tick] instead.
+// 已弃用：请改用 [Model.Tick]。
 func Tick() tea.Msg {
 	return TickMsg{Time: time.Now()}
 }
 
-// Option is used to set options in New. For example:
+// Option 用于在 New 中设置选项。例如：
 //
 //	spinner := New(WithSpinner(Dot))
 type Option func(*Model)
 
-// WithSpinner is an option to set the spinner.
+// WithSpinner 是设置加载动画的选项。
 func WithSpinner(spinner Spinner) Option {
 	return func(m *Model) {
 		m.Spinner = spinner
 	}
 }
 
-// WithStyle is an option to set the spinner style.
+// WithStyle 是设置加载动画样式的选项。
 func WithStyle(style lipgloss.Style) Option {
 	return func(m *Model) {
 		m.Style = style

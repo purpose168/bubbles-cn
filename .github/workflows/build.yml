@@ -1,4 +1,4 @@
-name: build
+name: 构建
 
 on: [push, pull_request]
 
@@ -10,21 +10,21 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install Go
+      - name: 安装 Go
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Checkout code
+      - name: 检出代码
         uses: actions/checkout@v6
 
-      - name: Download Go modules
+      - name: 下载 Go 模块
         run: go mod download
 
-      - name: Build
+      - name: 构建
         run: go build -v ./...
 
-      - name: Test
+      - name: 测试
         run: go test ./...
 
   dependabot:

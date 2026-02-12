@@ -1,53 +1,53 @@
-version: 2
+version: 2 # Dependabot 配置文件版本号
 
-updates:
-  - package-ecosystem: "gomod"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    groups:
-      all:
-        patterns:
-          - "*"
+updates: # 依赖更新规则列表
+  - package-ecosystem: "gomod" # 包管理生态系统：Go Modules
+    directory: "/" # 检查依赖的目录路径
+    schedule: # 更新计划配置
+      interval: "weekly" # 更新间隔：每周
+      day: "monday" # 执行日期：星期一
+      time: "05:00" # 执行时间：凌晨 5 点
+      timezone: "Asia/Shanghai" # 时区：美国纽约时间
+    labels: # Pull Request 标签
+      - "dependencies" # 添加 dependencies 标签
+    commit-message: # 提交消息配置
+      prefix: "chore" # 提交消息前缀
+      include: "scope" # 包含作用域信息
+    groups: # 依赖分组配置
+      all: # 所有依赖分组
+        patterns: # 匹配模式列表
+          - "*" # 匹配所有依赖
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    groups:
-      all:
-        patterns:
-          - "*"
+  - package-ecosystem: "github-actions" # 包管理生态系统：GitHub Actions
+    directory: "/" # 检查依赖的目录路径
+    schedule: # 更新计划配置
+      interval: "weekly" # 更新间隔：每周
+      day: "monday" # 执行日期：星期一
+      time: "05:00" # 执行时间：凌晨 5 点
+      timezone: "Asia/Shanghai" # 时区：美国纽约时间
+    labels: # Pull Request 标签
+      - "dependencies" # 添加 dependencies 标签
+    commit-message: # 提交消息配置
+      prefix: "chore" # 提交消息前缀
+      include: "scope" # 包含作用域信息
+    groups: # 依赖分组配置
+      all: # 所有依赖分组
+        patterns: # 匹配模式列表
+          - "*" # 匹配所有依赖
 
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    groups:
-      all:
-        patterns:
-          - "*"
+  - package-ecosystem: "docker" # 包管理生态系统：Docker
+    directory: "/" # 检查依赖的目录路径
+    schedule: # 更新计划配置
+      interval: "weekly" # 更新间隔：每周
+      day: "monday" # 执行日期：星期一
+      time: "05:00" # 执行时间：凌晨 5 点
+      timezone: "Asia/Shanghai" # 时区：美国纽约时间
+    labels: # Pull Request 标签
+      - "dependencies" # 添加 dependencies 标签
+    commit-message: # 提交消息配置
+      prefix: "chore" # 提交消息前缀
+      include: "scope" # 包含作用域信息
+    groups: # 依赖分组配置
+      all: # 所有依赖分组
+        patterns: # 匹配模式列表
+          - "*" # 匹配所有依赖

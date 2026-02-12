@@ -4,14 +4,13 @@ import (
 	"math"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
+	"github.com/purpose168/bubbles-cn/key"
+	tea "github.com/purpose168/bubbletea-cn"
+	"github.com/purpose168/charm-experimental-packages-cn/ansi"
+	lipgloss "github.com/purpose168/lipgloss-cn"
 )
 
-// New returns a new model with the given width and height as well as default
-// key mappings.
+// New 创建一个具有给定宽度和高度的视口模型，并设置默认按键映射
 func New(width, height int) (m Model) {
 	m.Width = width
 	m.Height = height
@@ -19,47 +18,41 @@ func New(width, height int) (m Model) {
 	return m
 }
 
-// Model is the Bubble Tea model for this viewport element.
+// Model 是视口组件的 Bubble Tea 模型
 type Model struct {
 	Width  int
 	Height int
 	KeyMap KeyMap
 
-	// Whether or not to respond to the mouse. The mouse must be enabled in
-	// Bubble Tea for this to work. For details, see the Bubble Tea docs.
+	// MouseWheelEnabled 是否响应鼠标滚轮事件。
+	// 必须在 Bubble Tea 中启用鼠标支持才能正常工作。详情请参阅 Bubble Tea 文档。
 	MouseWheelEnabled bool
 
-	// The number of lines the mouse wheel will scroll. By default, this is 3.
+	// MouseWheelDelta 鼠标滚轮滚动的行数。默认为 3
 	MouseWheelDelta int
 
-	// YOffset is the vertical scroll position.
+	// YOffset 垂直滚动位置
 	YOffset int
 
-	// xOffset is the horizontal scroll position.
+	// xOffset 水平滚动位置
 	xOffset int
 
-	// horizontalStep is the number of columns we move left or right during a
-	// default horizontal scroll.
+	// horizontalStep 默认水平滚动时左右移动的列数
 	horizontalStep int
 
-	// YPosition is the position of the viewport in relation to the terminal
-	// window. It's used in high performance rendering only.
+	// YPosition 视口相对于终端窗口的位置。仅用于高性能渲染
 	YPosition int
 
-	// Style applies a lipgloss style to the viewport. Realistically, it's most
-	// useful for setting borders, margins and padding.
+	// Style 为视口应用 lipgloss 样式。实际上，它最常用于设置边框、边距和内边距
 	Style lipgloss.Style
 
-	// HighPerformanceRendering bypasses the normal Bubble Tea renderer to
-	// provide higher performance rendering. Most of the time the normal Bubble
-	// Tea rendering methods will suffice, but if you're passing content with
-	// a lot of ANSI escape codes you may see improved rendering in certain
-	// terminals with this enabled.
+	// HighPerformanceRendering 绕过正常的 Bubble Tea 渲染器，提供更高性能的渲染。
+	// 大多数情况下，普通的 Bubble Tea 渲染方法已经足够，但如果你传递的内容包含大量
+	// ANSI 转义代码，启用此选项后你可能会在某些终端看到改善的渲染效果。
 	//
-	// This should only be used in program occupying the entire terminal,
-	// which is usually via the alternate screen buffer.
+	// 此选项仅应用于占据整个终端的程序，这通常是通过交替屏幕缓冲区实现的。
 	//
-	// Deprecated: high performance rendering is now deprecated in Bubble Tea.
+	// 已废弃：高性能渲染现已在 Bubble Tea 中被废弃
 	HighPerformanceRendering bool
 
 	initialized      bool
@@ -67,6 +60,7 @@ type Model struct {
 	longestLineWidth int
 }
 
+// setInitialValues 设置模型的初始默认值
 func (m *Model) setInitialValues() {
 	m.KeyMap = DefaultKeyMap()
 	m.MouseWheelEnabled = true
@@ -74,29 +68,28 @@ func (m *Model) setInitialValues() {
 	m.initialized = true
 }
 
-// Init exists to satisfy the tea.Model interface for composability purposes.
+// Init 存在是为了满足 tea.Model 接口，以实现组合性
 func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-// AtTop returns whether or not the viewport is at the very top position.
+// AtTop 返回视口是否处于最顶部位置
 func (m Model) AtTop() bool {
 	return m.YOffset <= 0
 }
 
-// AtBottom returns whether or not the viewport is at or past the very bottom
-// position.
+// AtBottom 返回视口是否处于或超过最底部位置
 func (m Model) AtBottom() bool {
 	return m.YOffset >= m.maxYOffset()
 }
 
-// PastBottom returns whether or not the viewport is scrolled beyond the last
-// line. This can happen when adjusting the viewport height.
+// PastBottom 返回视口是否已滚动超过最后一行。
+// 这种情况可能在调整视口高度时发生
 func (m Model) PastBottom() bool {
 	return m.YOffset > m.maxYOffset()
 }
 
-// ScrollPercent returns the amount scrolled as a float between 0 and 1.
+// ScrollPercent 返回滚动量作为 0 到 1 之间的浮点数
 func (m Model) ScrollPercent() float64 {
 	if m.Height >= len(m.lines) {
 		return 1.0
@@ -108,8 +101,7 @@ func (m Model) ScrollPercent() float64 {
 	return math.Max(0.0, math.Min(1.0, v))
 }
 
-// HorizontalScrollPercent returns the amount horizontally scrolled as a float
-// between 0 and 1.
+// HorizontalScrollPercent 返回水平滚动量作为 0 到 1 之间的浮点数
 func (m Model) HorizontalScrollPercent() float64 {
 	if m.xOffset >= m.longestLineWidth-m.Width {
 		return 1.0
@@ -121,9 +113,9 @@ func (m Model) HorizontalScrollPercent() float64 {
 	return math.Max(0.0, math.Min(1.0, v))
 }
 
-// SetContent set the pager's text content.
+// SetContent 设置分页器的文本内容
 func (m *Model) SetContent(s string) {
-	s = strings.ReplaceAll(s, "\r\n", "\n") // normalize line endings
+	s = strings.ReplaceAll(s, "\r\n", "\n") // 规范化行尾
 	m.lines = strings.Split(s, "\n")
 	m.longestLineWidth = findLongestLineWidth(m.lines)
 
@@ -132,14 +124,12 @@ func (m *Model) SetContent(s string) {
 	}
 }
 
-// maxYOffset returns the maximum possible value of the y-offset based on the
-// viewport's content and set height.
+// maxYOffset 根据视口的内容和设置的高度返回 y 偏移量的最大可能值
 func (m Model) maxYOffset() int {
 	return max(0, len(m.lines)-m.Height+m.Style.GetVerticalFrameSize())
 }
 
-// visibleLines returns the lines that should currently be visible in the
-// viewport.
+// visibleLines 返回当前应该在视口中可见的行
 func (m Model) visibleLines() (lines []string) {
 	h := m.Height - m.Style.GetVerticalFrameSize()
 	w := m.Width - m.Style.GetHorizontalFrameSize()
@@ -161,9 +151,9 @@ func (m Model) visibleLines() (lines []string) {
 	return cutLines
 }
 
-// scrollArea returns the scrollable boundaries for high performance rendering.
+// scrollArea 返回高性能渲染的滚动边界
 //
-// Deprecated: high performance rendering is deprecated in Bubble Tea.
+// 已废弃：高性能渲染已在 Bubble Tea 中被废弃
 func (m Model) scrollArea() (top, bottom int) {
 	top = max(0, m.YPosition)
 	bottom = max(top, top+m.Height)
@@ -173,20 +163,19 @@ func (m Model) scrollArea() (top, bottom int) {
 	return top, bottom
 }
 
-// SetYOffset sets the Y offset.
+// SetYOffset 设置 Y 偏移量
 func (m *Model) SetYOffset(n int) {
 	m.YOffset = clamp(n, 0, m.maxYOffset())
 }
 
-// ViewDown moves the view down by the number of lines in the viewport.
-// Basically, "page down".
+// ViewDown 将视图向下移动视口行数的行数。基本上就是"向下翻页"
 //
-// Deprecated: use [Model.PageDown] instead.
+// 已废弃：请改用 [Model.PageDown]
 func (m *Model) ViewDown() []string {
 	return m.PageDown()
 }
 
-// PageDown moves the view down by the number of lines in the viewport.
+// PageDown 将视图向下移动视口行数的行数
 func (m *Model) PageDown() []string {
 	if m.AtBottom() {
 		return nil
@@ -195,15 +184,14 @@ func (m *Model) PageDown() []string {
 	return m.ScrollDown(m.Height)
 }
 
-// ViewUp moves the view up by one height of the viewport.
-// Basically, "page up".
+// ViewUp 将视图向上移动一个视口的高度。基本上就是"向上翻页"
 //
-// Deprecated: use [Model.PageUp] instead.
+// 已废弃：请改用 [Model.PageUp]
 func (m *Model) ViewUp() []string {
 	return m.PageUp()
 }
 
-// PageUp moves the view up by one height of the viewport.
+// PageUp 将视图向上移动一个视口的高度
 func (m *Model) PageUp() []string {
 	if m.AtTop() {
 		return nil
@@ -212,14 +200,14 @@ func (m *Model) PageUp() []string {
 	return m.ScrollUp(m.Height)
 }
 
-// HalfViewDown moves the view down by half the height of the viewport.
+// HalfViewDown 将视图向下移动视口高度的一半
 //
-// Deprecated: use [Model.HalfPageDown] instead.
+// 已废弃：请改用 [Model.HalfPageDown]
 func (m *Model) HalfViewDown() (lines []string) {
 	return m.HalfPageDown()
 }
 
-// HalfPageDown moves the view down by half the height of the viewport.
+// HalfPageDown 将视图向下移动视口高度的一半
 func (m *Model) HalfPageDown() (lines []string) {
 	if m.AtBottom() {
 		return nil
@@ -228,14 +216,14 @@ func (m *Model) HalfPageDown() (lines []string) {
 	return m.ScrollDown(m.Height / 2) //nolint:mnd
 }
 
-// HalfViewUp moves the view up by half the height of the viewport.
+// HalfViewUp 将视图向上移动视口高度的一半
 //
-// Deprecated: use [Model.HalfPageUp] instead.
+// 已废弃：请改用 [Model.HalfPageUp]
 func (m *Model) HalfViewUp() (lines []string) {
 	return m.HalfPageUp()
 }
 
-// HalfPageUp moves the view up by half the height of the viewport.
+// HalfPageUp 将视图向上移动视口高度的一半
 func (m *Model) HalfPageUp() (lines []string) {
 	if m.AtTop() {
 		return nil
@@ -244,95 +232,89 @@ func (m *Model) HalfPageUp() (lines []string) {
 	return m.ScrollUp(m.Height / 2) //nolint:mnd
 }
 
-// LineDown moves the view down by the given number of lines.
+// LineDown 将视图向下移动指定的行数
 //
-// Deprecated: use [Model.ScrollDown] instead.
+// 已废弃：请改用 [Model.ScrollDown]
 func (m *Model) LineDown(n int) (lines []string) {
 	return m.ScrollDown(n)
 }
 
-// ScrollDown moves the view down by the given number of lines.
+// ScrollDown 将视图向下移动指定的行数
 func (m *Model) ScrollDown(n int) (lines []string) {
 	if m.AtBottom() || n == 0 || len(m.lines) == 0 {
 		return nil
 	}
 
-	// Make sure the number of lines by which we're going to scroll isn't
-	// greater than the number of lines we actually have left before we reach
-	// the bottom.
+	// 确保我们要滚动的行数不大于到达底部之前实际剩余的行数
 	m.SetYOffset(m.YOffset + n)
 
-	// Gather lines to send off for performance scrolling.
+	// 收集用于性能滚动的行
 	//
-	// XXX: high performance rendering is deprecated in Bubble Tea.
+	// XXX：高性能渲染已在 Bubble Tea 中被废弃
 	bottom := clamp(m.YOffset+m.Height, 0, len(m.lines))
 	top := clamp(m.YOffset+m.Height-n, 0, bottom)
 	return m.lines[top:bottom]
 }
 
-// LineUp moves the view down by the given number of lines. Returns the new
-// lines to show.
+// LineUp 将视图向下移动指定的行数。返回要显示的新行
 //
-// Deprecated: use [Model.ScrollUp] instead.
+// 已废弃：请改用 [Model.ScrollUp]
 func (m *Model) LineUp(n int) (lines []string) {
 	return m.ScrollUp(n)
 }
 
-// ScrollUp moves the view down by the given number of lines. Returns the new
-// lines to show.
+// ScrollUp 将视图向下移动指定的行数。返回要显示的新行
 func (m *Model) ScrollUp(n int) (lines []string) {
 	if m.AtTop() || n == 0 || len(m.lines) == 0 {
 		return nil
 	}
 
-	// Make sure the number of lines by which we're going to scroll isn't
-	// greater than the number of lines we are from the top.
+	// 确保我们要滚动的行数不大于距离顶部的行数
 	m.SetYOffset(m.YOffset - n)
 
-	// Gather lines to send off for performance scrolling.
+	// 收集用于性能滚动的行
 	//
-	// XXX: high performance rendering is deprecated in Bubble Tea.
+	// XXX：高性能渲染已在 Bubble Tea 中被废弃
 	top := max(0, m.YOffset)
 	bottom := clamp(m.YOffset+n, 0, m.maxYOffset())
 	return m.lines[top:bottom]
 }
 
-// SetHorizontalStep sets the default amount of columns to scroll left or right
-// with the default viewport key map.
+// SetHorizontalStep 设置使用默认视口按键映射时左右滚动的默认列数
 //
-// If set to 0 or less, horizontal scrolling is disabled.
+// 如果设置为 0 或更小，水平滚动将被禁用
 //
-// On v1, horizontal scrolling is disabled by default.
+// 在 v1 版本中，水平滚动默认是禁用的
 func (m *Model) SetHorizontalStep(n int) {
 	m.horizontalStep = max(n, 0)
 }
 
-// SetXOffset sets the X offset.
+// SetXOffset 设置 X 偏移量
 func (m *Model) SetXOffset(n int) {
 	m.xOffset = clamp(n, 0, m.longestLineWidth-m.Width)
 }
 
-// ScrollLeft moves the viewport to the left by the given number of columns.
+// ScrollLeft 将视口向左移动指定的列数
 func (m *Model) ScrollLeft(n int) {
 	m.SetXOffset(m.xOffset - n)
 }
 
-// ScrollRight moves viewport to the right by the given number of columns.
+// ScrollRight 将视口向右移动指定的列数
 func (m *Model) ScrollRight(n int) {
 	m.SetXOffset(m.xOffset + n)
 }
 
-// TotalLineCount returns the total number of lines (both hidden and visible) within the viewport.
+// TotalLineCount 返回视口内行的总数（包括隐藏和可见的行）
 func (m Model) TotalLineCount() int {
 	return len(m.lines)
 }
 
-// VisibleLineCount returns the number of the visible lines within the viewport.
+// VisibleLineCount 返回视口内可见行的数量
 func (m Model) VisibleLineCount() int {
 	return len(m.visibleLines())
 }
 
-// GotoTop sets the viewport to the top position.
+// GotoTop 将视口设置到顶部位置
 func (m *Model) GotoTop() (lines []string) {
 	if m.AtTop() {
 		return nil
@@ -342,19 +324,18 @@ func (m *Model) GotoTop() (lines []string) {
 	return m.visibleLines()
 }
 
-// GotoBottom sets the viewport to the bottom position.
+// GotoBottom 将视口设置到底部位置
 func (m *Model) GotoBottom() (lines []string) {
 	m.SetYOffset(m.maxYOffset())
 	return m.visibleLines()
 }
 
-// Sync tells the renderer where the viewport will be located and requests
-// a render of the current state of the viewport. It should be called for the
-// first render and after a window resize.
+// Sync 告诉渲染器视口将位于何处，并请求渲染视口的当前状态。
+// 它应该在第一次渲染和窗口调整大小后调用
 //
-// For high performance rendering only.
+// 仅用于高性能渲染
 //
-// Deprecated: high performance rendering is deprecated in Bubble Tea.
+// 已废弃：高性能渲染已在 Bubble Tea 中被废弃
 func Sync(m Model) tea.Cmd {
 	if len(m.lines) == 0 {
 		return nil
@@ -363,50 +344,47 @@ func Sync(m Model) tea.Cmd {
 	return tea.SyncScrollArea(m.visibleLines(), top, bottom)
 }
 
-// ViewDown is a high performance command that moves the viewport up by a given
-// number of lines. Use Model.ViewDown to get the lines that should be rendered.
-// For example:
+// ViewDown 是一个高性能命令，将视口向上移动指定的行数。
+// 使用 Model.ViewDown 获取应该渲染的行。例如：
 //
 //	lines := model.ViewDown(1)
 //	cmd := ViewDown(m, lines)
 //
-// Deprecated: high performance rendering is deprecated in Bubble Tea.
+// 已废弃：高性能渲染已在 Bubble Tea 中被废弃
 func ViewDown(m Model, lines []string) tea.Cmd {
 	if len(lines) == 0 {
 		return nil
 	}
 	top, bottom := m.scrollArea()
 
-	// XXX: high performance rendering is deprecated in Bubble Tea. In a v2 we
-	// won't need to return a command here.
+	// XXX：高性能渲染已在 Bubble Tea 中被废弃。在 v2 版本中，
+	// 我们不需要在这里返回命令
 	return tea.ScrollDown(lines, top, bottom)
 }
 
-// ViewUp is a high performance command the moves the viewport down by a given
-// number of lines height. Use Model.ViewUp to get the lines that should be
-// rendered.
+// ViewUp 是一个高性能命令，将视口向下移动指定的高度行数。
+// 使用 Model.ViewUp 获取应该渲染的行
 //
-// Deprecated: high performance rendering is deprecated in Bubble Tea.
+// 已废弃：高性能渲染已在 Bubble Tea 中被废弃
 func ViewUp(m Model, lines []string) tea.Cmd {
 	if len(lines) == 0 {
 		return nil
 	}
 	top, bottom := m.scrollArea()
 
-	// XXX: high performance rendering is deprecated in Bubble Tea. In a v2 we
-	// won't need to return a command here.
+	// XXX：高性能渲染已在 Bubble Tea 中被废弃。在 v2 版本中，
+	// 我们不需要在这里返回命令
 	return tea.ScrollUp(lines, top, bottom)
 }
 
-// Update handles standard message-based viewport updates.
+// Update 处理基于消息的标准视口更新
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m, cmd = m.updateAsModel(msg)
 	return m, cmd
 }
 
-// Author's note: this method has been broken out to make it easier to
-// potentially transition Update to satisfy tea.Model.
+// updateAsModel 此方法被分离出来，以便更容易地将 Update 转换为满足 tea.Model
 func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 	if !m.initialized {
 		m.setInitialValues()
@@ -467,7 +445,7 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 		switch msg.Button { //nolint:exhaustive
 		case tea.MouseButtonWheelUp:
 			if msg.Shift {
-				// Note that not every terminal emulator sends the shift event for mouse actions by default (looking at you Konsole)
+				// 注意：并非每个终端模拟器默认都发送鼠标动作的 Shift 事件（看看你，Konsole）
 				m.ScrollLeft(m.horizontalStep)
 			} else {
 				lines := m.ScrollUp(m.MouseWheelDelta)
@@ -485,7 +463,7 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 					cmd = ViewDown(m, lines)
 				}
 			}
-		// Note that not every terminal emulator sends the horizontal wheel events by default (looking at you Konsole)
+		// 注意：并非每个终端模拟器默认都发送水平滚轮事件（看看你，Konsole）
 		case tea.MouseButtonWheelLeft:
 			m.ScrollLeft(m.horizontalStep)
 		case tea.MouseButtonWheelRight:
@@ -496,13 +474,12 @@ func (m Model) updateAsModel(msg tea.Msg) (Model, tea.Cmd) {
 	return m, cmd
 }
 
-// View renders the viewport into a string.
+// View 将视口渲染为字符串
 func (m Model) View() string {
 	if m.HighPerformanceRendering {
-		// Just send newlines since we're going to be rendering the actual
-		// content separately. We still need to send something that equals the
-		// height of this view so that the Bubble Tea standard renderer can
-		// position anything below this view properly.
+		// 由于我们将单独渲染实际内容，只需发送换行符。
+		// 我们仍然需要发送一些等于此视图高度的内容，
+		// 以便 Bubble Tea 标准渲染器正确定位此视图下方的任何内容
 		return strings.Repeat("\n", max(0, m.Height-1))
 	}
 
@@ -516,16 +493,17 @@ func (m Model) View() string {
 	contentWidth := w - m.Style.GetHorizontalFrameSize()
 	contentHeight := h - m.Style.GetVerticalFrameSize()
 	contents := lipgloss.NewStyle().
-		Width(contentWidth).      // pad to width.
-		Height(contentHeight).    // pad to height.
-		MaxHeight(contentHeight). // truncate height if taller.
-		MaxWidth(contentWidth).   // truncate width if wider.
+		Width(contentWidth).      // 填充到宽度
+		Height(contentHeight).    // 填充到高度
+		MaxHeight(contentHeight). // 如果更高则截断高度
+		MaxWidth(contentWidth).   // 如果更宽则截断宽度
 		Render(strings.Join(m.visibleLines(), "\n"))
 	return m.Style.
-		UnsetWidth().UnsetHeight(). // Style size already applied in contents.
+		UnsetWidth().UnsetHeight(). // 样式大小已在 contents 中应用
 		Render(contents)
 }
 
+// clamp 将值限制在指定的最小值和最大值之间
 func clamp(v, low, high int) int {
 	if high < low {
 		low, high = high, low
@@ -533,6 +511,7 @@ func clamp(v, low, high int) int {
 	return min(high, max(low, v))
 }
 
+// findLongestLineWidth 查找所有行中最长行的宽度
 func findLongestLineWidth(lines []string) int {
 	w := 0
 	for _, l := range lines {

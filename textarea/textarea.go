@@ -1,5 +1,4 @@
-// Package textarea provides a multi-line text input component for Bubble Tea
-// applications.
+// Package textarea 为 Bubble Tea 应用程序提供多行文本输入组件。
 package textarea
 
 import (
@@ -10,66 +9,65 @@ import (
 	"unicode"
 
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/cursor"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/runeutil"
-	"github.com/charmbracelet/bubbles/textarea/memoization"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 	rw "github.com/mattn/go-runewidth"
+	"github.com/purpose168/bubbles-cn/cursor"
+	"github.com/purpose168/bubbles-cn/key"
+	"github.com/purpose168/bubbles-cn/runeutil"
+	"github.com/purpose168/bubbles-cn/textarea/memoization"
+	"github.com/purpose168/bubbles-cn/viewport"
+	tea "github.com/purpose168/bubbletea-cn"
+	"github.com/purpose168/charm-experimental-packages-cn/ansi"
+	lipgloss "github.com/purpose168/lipgloss-cn"
 	"github.com/rivo/uniseg"
 )
 
 const (
-	minHeight        = 1
-	defaultHeight    = 6
-	defaultWidth     = 40
-	defaultCharLimit = 0 // no limit
-	defaultMaxHeight = 99
-	defaultMaxWidth  = 500
+	minHeight        = 1   // 最小高度
+	defaultHeight    = 6   // 默认高度
+	defaultWidth     = 40  // 默认宽度
+	defaultCharLimit = 0   // 无限制
+	defaultMaxHeight = 99  // 默认最大高度
+	defaultMaxWidth  = 500 // 默认最大宽度
 
-	// XXX: in v2, make max lines dynamic and default max lines configurable.
-	maxLines = 10000
+	// XXX: 在 v2 版本中，使最大行数动态化，并使默认最大行数可配置。
+	maxLines = 10000 // 最大行数
 )
 
-// Internal messages for clipboard operations.
+// 剪贴板操作的内部消息。
 type (
-	pasteMsg    string
-	pasteErrMsg struct{ error }
+	pasteMsg    string          // 粘贴消息
+	pasteErrMsg struct{ error } // 粘贴错误消息
 )
 
-// KeyMap is the key bindings for different actions within the textarea.
+// KeyMap 定义了 textarea 中不同操作的键绑定。
 type KeyMap struct {
-	CharacterBackward       key.Binding
-	CharacterForward        key.Binding
-	DeleteAfterCursor       key.Binding
-	DeleteBeforeCursor      key.Binding
-	DeleteCharacterBackward key.Binding
-	DeleteCharacterForward  key.Binding
-	DeleteWordBackward      key.Binding
-	DeleteWordForward       key.Binding
-	InsertNewline           key.Binding
-	LineEnd                 key.Binding
-	LineNext                key.Binding
-	LinePrevious            key.Binding
-	LineStart               key.Binding
-	Paste                   key.Binding
-	WordBackward            key.Binding
-	WordForward             key.Binding
-	InputBegin              key.Binding
-	InputEnd                key.Binding
+	CharacterBackward       key.Binding // 字符向后
+	CharacterForward        key.Binding // 字符向前
+	DeleteAfterCursor       key.Binding // 删除光标后
+	DeleteBeforeCursor      key.Binding // 删除光标前
+	DeleteCharacterBackward key.Binding // 向后删除字符
+	DeleteCharacterForward  key.Binding // 向前删除字符
+	DeleteWordBackward      key.Binding // 向后删除单词
+	DeleteWordForward       key.Binding // 向前删除单词
+	InsertNewline           key.Binding // 插入换行
+	LineEnd                 key.Binding // 行尾
+	LineNext                key.Binding // 下一行
+	LinePrevious            key.Binding // 上一行
+	LineStart               key.Binding // 行首
+	Paste                   key.Binding // 粘贴
+	WordBackward            key.Binding // 单词向后
+	WordForward             key.Binding // 单词向前
+	InputBegin              key.Binding // 输入开始
+	InputEnd                key.Binding // 输入结束
 
-	UppercaseWordForward  key.Binding
-	LowercaseWordForward  key.Binding
-	CapitalizeWordForward key.Binding
+	UppercaseWordForward  key.Binding // 向前大写单词
+	LowercaseWordForward  key.Binding // 向前小写单词
+	CapitalizeWordForward key.Binding // 向前首字母大写单词
 
-	TransposeCharacterBackward key.Binding
+	TransposeCharacterBackward key.Binding // 向前交换字符
 }
 
-// DefaultKeyMap is the default set of key bindings for navigating and acting
-// upon the textarea.
+// DefaultKeyMap 是用于在 textarea 中导航和操作的默认键绑定集合。
 var DefaultKeyMap = KeyMap{
 	CharacterForward:        key.NewBinding(key.WithKeys("right", "ctrl+f"), key.WithHelp("right", "character forward")),
 	CharacterBackward:       key.NewBinding(key.WithKeys("left", "ctrl+b"), key.WithHelp("left", "character backward")),
@@ -97,47 +95,40 @@ var DefaultKeyMap = KeyMap{
 	TransposeCharacterBackward: key.NewBinding(key.WithKeys("ctrl+t"), key.WithHelp("ctrl+t", "transpose character backward")),
 }
 
-// LineInfo is a helper for keeping track of line information regarding
-// soft-wrapped lines.
+// LineInfo 是一个辅助结构，用于跟踪软换行相关的行信息。
 type LineInfo struct {
-	// Width is the number of columns in the line.
+	// Width 是行中的列数。
 	Width int
-	// CharWidth is the number of characters in the line to account for
-	// double-width runes.
+	// CharWidth 是行中的字符数，用于处理双宽度字符。
 	CharWidth int
-	// Height is the number of rows in the line.
+	// Height 是行中的行数。
 	Height int
-	// StartColumn is the index of the first column of the line.
+	// StartColumn 是行第一列的索引。
 	StartColumn int
-	// ColumnOffset is the number of columns that the cursor is offset from the
-	// start of the line.
+	// ColumnOffset 是光标距离行首的列偏移量。
 	ColumnOffset int
-	// RowOffset is the number of rows that the cursor is offset from the start
-	// of the line.
+	// RowOffset 是光标距离行首的行偏移量。
 	RowOffset int
-	// CharOffset is the number of characters that the cursor is offset
-	// from the start of the line. This will generally be equivalent to
-	// ColumnOffset, but will be different there are double-width runes before
-	// the cursor.
+	// CharOffset 是光标距离行首的字符偏移量。这通常与 ColumnOffset 相等，
+	// 但如果光标前有双宽度字符，则会不同。
 	CharOffset int
 }
 
-// Style that will be applied to the text area.
+// Style 是应用于文本区域的样式。
 //
-// Style can be applied to focused and unfocused states to change the styles
-// depending on the focus state.
+// Style 可以应用于聚焦和非聚焦状态，以根据聚焦状态更改样式。
 //
-// For an introduction to styling with Lip Gloss see:
+// 有关使用 Lip Gloss 进行样式设置的介绍，请参阅：
 // https://github.com/charmbracelet/lipgloss
 type Style struct {
-	Base             lipgloss.Style
-	CursorLine       lipgloss.Style
-	CursorLineNumber lipgloss.Style
-	EndOfBuffer      lipgloss.Style
-	LineNumber       lipgloss.Style
-	Placeholder      lipgloss.Style
-	Prompt           lipgloss.Style
-	Text             lipgloss.Style
+	Base             lipgloss.Style // 基础样式
+	CursorLine       lipgloss.Style // 光标行样式
+	CursorLineNumber lipgloss.Style // 光标行号样式
+	EndOfBuffer      lipgloss.Style // 缓冲区结束样式
+	LineNumber       lipgloss.Style // 行号样式
+	Placeholder      lipgloss.Style // 占位符样式
+	Prompt           lipgloss.Style // 提示符样式
+	Text             lipgloss.Style // 文本样式
 }
 
 func (s Style) computedCursorLine() lipgloss.Style {
@@ -171,115 +162,100 @@ func (s Style) computedText() lipgloss.Style {
 	return s.Text.Inherit(s.Base).Inline(true)
 }
 
-// line is the input to the text wrapping function. This is stored in a struct
-// so that it can be hashed and memoized.
+// line 是文本换行函数的输入。这存储在一个结构体中，以便进行哈希和记忆化。
 type line struct {
-	runes []rune
-	width int
+	runes []rune // 字符数组
+	width int    // 宽度
 }
 
-// Hash returns a hash of the line.
+// Hash 返回行的哈希值。
 func (w line) Hash() string {
 	v := fmt.Sprintf("%s:%d", string(w.runes), w.width)
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(v)))
 }
 
-// Model is the Bubble Tea model for this text area element.
+// Model 是此文本区域元素的 Bubble Tea 模型。
 type Model struct {
-	Err error
+	Err error // 错误
 
-	// General settings.
-	cache *memoization.MemoCache[line, [][]rune]
+	// 通用设置。
+	cache *memoization.MemoCache[line, [][]rune] // 缓存
 
-	// Prompt is printed at the beginning of each line.
+	// Prompt 在每行的开头打印。
 	//
-	// When changing the value of Prompt after the model has been
-	// initialized, ensure that SetWidth() gets called afterwards.
+	// 在模型初始化后更改 Prompt 的值时，确保之后调用 SetWidth()。
 	//
-	// See also SetPromptFunc().
+	// 另请参阅 SetPromptFunc()。
 	Prompt string
 
-	// Placeholder is the text displayed when the user
-	// hasn't entered anything yet.
+	// Placeholder 是当用户尚未输入任何内容时显示的文本。
 	Placeholder string
 
-	// ShowLineNumbers, if enabled, causes line numbers to be printed
-	// after the prompt.
+	// ShowLineNumbers 如果启用，会导致在提示符后打印行号。
 	ShowLineNumbers bool
 
-	// EndOfBufferCharacter is displayed at the end of the input.
+	// EndOfBufferCharacter 在输入的末尾显示。
 	EndOfBufferCharacter rune
 
-	// KeyMap encodes the keybindings recognized by the widget.
+	// KeyMap 编码了小部件识别的键绑定。
 	KeyMap KeyMap
 
-	// Styling. FocusedStyle and BlurredStyle are used to style the textarea in
-	// focused and blurred states.
+	// 样式。FocusedStyle 和 BlurredStyle 用于在聚焦和模糊状态下设置 textarea 的样式。
 	FocusedStyle Style
 	BlurredStyle Style
-	// style is the current styling to use.
-	// It is used to abstract the differences in focus state when styling the
-	// model, since we can simply assign the set of styles to this variable
-	// when switching focus states.
+	// style 是当前使用的样式。
+	// 它用于在设置模型样式时抽象聚焦状态的差异，因为我们可以简单地将一组样式
+	// 分配给此变量，以便在切换聚焦状态时使用。
 	style *Style
 
-	// Cursor is the text area cursor.
+	// Cursor 是文本区域的光标。
 	Cursor cursor.Model
 
-	// CharLimit is the maximum number of characters this input element will
-	// accept. If 0 or less, there's no limit.
+	// CharLimit 是此输入元素将接受的最大字符数。如果为 0 或更小，则没有限制。
 	CharLimit int
 
-	// MaxHeight is the maximum height of the text area in rows. If 0 or less,
-	// there's no limit.
+	// MaxHeight 是文本区域的最大高度（以行为单位）。如果为 0 或更小，则没有限制。
 	MaxHeight int
 
-	// MaxWidth is the maximum width of the text area in columns. If 0 or less,
-	// there's no limit.
+	// MaxWidth 是文本区域的最大宽度（以列为单位）。如果为 0 或更小，则没有限制。
 	MaxWidth int
 
-	// If promptFunc is set, it replaces Prompt as a generator for
-	// prompt strings at the beginning of each line.
+	// 如果设置了 promptFunc，它将替换 Prompt 作为每行开头提示符字符串的生成器。
 	promptFunc func(line int) string
 
-	// promptWidth is the width of the prompt.
+	// promptWidth 是提示符的宽度。
 	promptWidth int
 
-	// width is the maximum number of characters that can be displayed at once.
-	// If 0 or less this setting is ignored.
+	// width 是可以一次显示的最大字符数。如果为 0 或更小，则忽略此设置。
 	width int
 
-	// height is the maximum number of lines that can be displayed at once. It
-	// essentially treats the text field like a vertically scrolling viewport
-	// if there are more lines than the permitted height.
+	// height 是可以一次显示的最大行数。如果行数超过允许的高度，
+	// 它实际上将文本字段视为垂直滚动的视口。
 	height int
 
-	// Underlying text value.
+	// 底层文本值。
 	value [][]rune
 
-	// focus indicates whether user input focus should be on this input
-	// component. When false, ignore keyboard input and hide the cursor.
+	// focus 指示用户输入焦点是否应在此输入组件上。当为 false 时，忽略键盘输入并隐藏光标。
 	focus bool
 
-	// Cursor column.
+	// 光标列。
 	col int
 
-	// Cursor row.
+	// 光标行。
 	row int
 
-	// Last character offset, used to maintain state when the cursor is moved
-	// vertically such that we can maintain the same navigating position.
+	// 最后一个字符偏移量，用于在垂直移动光标时保持状态，以便我们可以保持相同的导航位置。
 	lastCharOffset int
 
-	// viewport is the vertically-scrollable viewport of the multi-line text
-	// input.
+	// viewport 是多行文本输入的垂直滚动视口。
 	viewport *viewport.Model
 
-	// rune sanitizer for input.
+	// 输入的字符清理器。
 	rsan runeutil.Sanitizer
 }
 
-// New creates a new model with default settings.
+// New 创建一个具有默认设置的新模型。
 func New() Model {
 	vp := viewport.New(0, 0)
 	vp.KeyMap = viewport.KeyMap{}
@@ -315,8 +291,7 @@ func New() Model {
 	return m
 }
 
-// DefaultStyles returns the default styles for focused and blurred states for
-// the textarea.
+// DefaultStyles 返回 textarea 的聚焦和模糊状态的默认样式。
 func DefaultStyles() (Style, Style) {
 	focused := Style{
 		Base:             lipgloss.NewStyle(),
@@ -342,98 +317,90 @@ func DefaultStyles() (Style, Style) {
 	return focused, blurred
 }
 
-// SetValue sets the value of the text input.
+// SetValue 设置文本输入的值。
 func (m *Model) SetValue(s string) {
 	m.Reset()
 	m.InsertString(s)
 }
 
-// InsertString inserts a string at the cursor position.
+// InsertString 在光标位置插入一个字符串。
 func (m *Model) InsertString(s string) {
 	m.insertRunesFromUserInput([]rune(s))
 }
 
-// InsertRune inserts a rune at the cursor position.
+// InsertRune 在光标位置插入一个字符。
 func (m *Model) InsertRune(r rune) {
 	m.insertRunesFromUserInput([]rune{r})
 }
 
-// insertRunesFromUserInput inserts runes at the current cursor position.
+// insertRunesFromUserInput 在当前光标位置插入字符。
 func (m *Model) insertRunesFromUserInput(runes []rune) {
-	// Clean up any special characters in the input provided by the
-	// clipboard. This avoids bugs due to e.g. tab characters and
-	// whatnot.
+	// 清理剪贴板提供的输入中的任何特殊字符。这避免了由于制表符等
+	// 字符导致的错误。
 	runes = m.san().Sanitize(runes)
 
 	if m.CharLimit > 0 {
 		availSpace := m.CharLimit - m.Length()
-		// If the char limit's been reached, cancel.
+		// 如果已达到字符限制，则取消。
 		if availSpace <= 0 {
 			return
 		}
-		// If there's not enough space to paste the whole thing cut the pasted
-		// runes down so they'll fit.
+		// 如果没有足够的空间粘贴整个内容，则截断粘贴的字符以使其适合。
 		if availSpace < len(runes) {
 			runes = runes[:availSpace]
 		}
 	}
 
-	// Split the input into lines.
+	// 将输入分割成行。
 	var lines [][]rune
 	lstart := 0
 	for i := 0; i < len(runes); i++ {
 		if runes[i] == '\n' {
-			// Queue a line to become a new row in the text area below.
-			// Beware to clamp the max capacity of the slice, to ensure no
-			// data from different rows get overwritten when later edits
-			// will modify this line.
+			// 将一行排队成为下方文本区域中的新行。注意限制切片的最大容量，
+			// 以确保不同行的数据在后续编辑修改此行时不会被覆盖。
 			lines = append(lines, runes[lstart:i:i])
 			lstart = i + 1
 		}
 	}
 	if lstart <= len(runes) {
-		// The last line did not end with a newline character.
-		// Take it now.
+		// 最后一行没有以换行符结尾。现在获取它。
 		lines = append(lines, runes[lstart:])
 	}
 
-	// Obey the maximum line limit.
+	// 遵守最大行数限制。
 	if maxLines > 0 && len(m.value)+len(lines)-1 > maxLines {
 		allowedHeight := max(0, maxLines-len(m.value)+1)
 		lines = lines[:allowedHeight]
 	}
 
 	if len(lines) == 0 {
-		// Nothing left to insert.
+		// 没有剩余内容可插入。
 		return
 	}
 
-	// Save the remainder of the original line at the current
-	// cursor position.
+	// 保存当前光标位置处原始行的剩余部分。
 	tail := make([]rune, len(m.value[m.row][m.col:]))
 	copy(tail, m.value[m.row][m.col:])
 
-	// Paste the first line at the current cursor position.
+	// 在当前光标位置粘贴第一行。
 	m.value[m.row] = append(m.value[m.row][:m.col], lines[0]...)
 	m.col += len(lines[0])
 
 	if numExtraLines := len(lines) - 1; numExtraLines > 0 {
-		// Add the new lines.
-		// We try to reuse the slice if there's already space.
+		// 添加新行。如果已有空间，我们尝试重用切片。
 		var newGrid [][]rune
 		if cap(m.value) >= len(m.value)+numExtraLines {
-			// Can reuse the extra space.
+			// 可以重用额外的空间。
 			newGrid = m.value[:len(m.value)+numExtraLines]
 		} else {
-			// No space left; need a new slice.
+			// 没有剩余空间；需要一个新的切片。
 			newGrid = make([][]rune, len(m.value)+numExtraLines)
 			copy(newGrid, m.value[:m.row+1])
 		}
-		// Add all the rows that were after the cursor in the original
-		// grid at the end of the new grid.
+		// 将原始网格中光标之后的所有行添加到新网格的末尾。
 		copy(newGrid[m.row+1+numExtraLines:], m.value[m.row+1:])
 		m.value = newGrid
-		// Insert all the new lines in the middle.
+		// 在中间插入所有新行。
 		for _, l := range lines[1:] {
 			m.row++
 			m.value[m.row] = l
@@ -441,13 +408,13 @@ func (m *Model) insertRunesFromUserInput(runes []rune) {
 		}
 	}
 
-	// Finally add the tail at the end of the last line inserted.
+	// 最后在插入的最后一行的末尾添加尾部。
 	m.value[m.row] = append(m.value[m.row], tail...)
 
 	m.SetCursor(m.col)
 }
 
-// Value returns the value of the text input.
+// Value 返回文本输入的值。
 func (m Model) Value() string {
 	if m.value == nil {
 		return ""
@@ -462,28 +429,28 @@ func (m Model) Value() string {
 	return strings.TrimSuffix(v.String(), "\n")
 }
 
-// Length returns the number of characters currently in the text input.
+// Length 返回文本输入中当前的字符数。
 func (m *Model) Length() int {
 	var l int
 	for _, row := range m.value {
 		l += uniseg.StringWidth(string(row))
 	}
-	// We add len(m.value) to include the newline characters.
+	// 我们添加 len(m.value) 以包含换行符。
 	return l + len(m.value) - 1
 }
 
-// LineCount returns the number of lines that are currently in the text input.
+// LineCount 返回文本输入中当前的行数。
 func (m *Model) LineCount() int {
 	return len(m.value)
 }
 
-// Line returns the line position.
+// Line 返回行位置。
 func (m Model) Line() int {
 	return m.row
 }
 
-// CursorDown moves the cursor down by one line.
-// Returns whether or not the cursor blink should be reset.
+// CursorDown 将光标向下移动一行。
+// 返回是否应该重置光标闪烁。
 func (m *Model) CursorDown() {
 	li := m.LineInfo()
 	charOffset := max(m.lastCharOffset, li.CharOffset)
@@ -493,9 +460,8 @@ func (m *Model) CursorDown() {
 		m.row++
 		m.col = 0
 	} else {
-		// Move the cursor to the start of the next line so that we can get
-		// the line information. We need to add 2 columns to account for the
-		// trailing space wrapping.
+		// 将光标移动到下一行的开头，以便我们可以获取行信息。
+		// 我们需要添加 2 列来考虑尾随空格换行。
 		const trailingSpace = 2
 		m.col = min(li.StartColumn+li.Width+trailingSpace, len(m.value[m.row])-1)
 	}
@@ -517,7 +483,7 @@ func (m *Model) CursorDown() {
 	}
 }
 
-// CursorUp moves the cursor up by one line.
+// CursorUp 将光标向上移动一行。
 func (m *Model) CursorUp() {
 	li := m.LineInfo()
 	charOffset := max(m.lastCharOffset, li.CharOffset)
@@ -527,10 +493,9 @@ func (m *Model) CursorUp() {
 		m.row--
 		m.col = len(m.value[m.row])
 	} else {
-		// Move the cursor to the end of the previous line.
-		// This can be done by moving the cursor to the start of the line and
-		// then subtracting 2 to account for the trailing space we keep on
-		// soft-wrapped lines.
+		// 将光标移动到上一行的末尾。
+		// 这可以通过将光标移动到行的开头，然后减去 2 来实现，
+		// 以考虑我们在软换行上保留的尾随空格。
 		const trailingSpace = 2
 		m.col = li.StartColumn - trailingSpace
 	}
@@ -552,47 +517,47 @@ func (m *Model) CursorUp() {
 	}
 }
 
-// SetCursor moves the cursor to the given position. If the position is
-// out of bounds the cursor will be moved to the start or end accordingly.
+// SetCursor 将光标移动到给定位置。如果位置超出范围，
+// 光标将相应地移动到开头或结尾。
 func (m *Model) SetCursor(col int) {
 	m.col = clamp(col, 0, len(m.value[m.row]))
-	// Any time that we move the cursor horizontally we need to reset the last
-	// offset so that the horizontal position when navigating is adjusted.
+	// 每当我们水平移动光标时，我们需要重置最后的偏移量，
+	// 以便在导航时调整水平位置。
 	m.lastCharOffset = 0
 }
 
-// CursorStart moves the cursor to the start of the input field.
+// CursorStart 将光标移动到输入字段的开头。
 func (m *Model) CursorStart() {
 	m.SetCursor(0)
 }
 
-// CursorEnd moves the cursor to the end of the input field.
+// CursorEnd 将光标移动到输入字段的末尾。
 func (m *Model) CursorEnd() {
 	m.SetCursor(len(m.value[m.row]))
 }
 
-// Focused returns the focus state on the model.
+// Focused 返回模型上的聚焦状态。
 func (m Model) Focused() bool {
 	return m.focus
 }
 
-// Focus sets the focus state on the model. When the model is in focus it can
-// receive keyboard input and the cursor will be hidden.
+// Focus 在模型上设置聚焦状态。当模型处于聚焦状态时，它可以
+// 接收键盘输入，光标将显示。
 func (m *Model) Focus() tea.Cmd {
 	m.focus = true
 	m.style = &m.FocusedStyle
 	return m.Cursor.Focus()
 }
 
-// Blur removes the focus state on the model. When the model is blurred it can
-// not receive keyboard input and the cursor will be hidden.
+// Blur 移除模型上的聚焦状态。当模型处于模糊状态时，它
+// 不能接收键盘输入，光标将隐藏。
 func (m *Model) Blur() {
 	m.focus = false
 	m.style = &m.BlurredStyle
 	m.Cursor.Blur()
 }
 
-// Reset sets the input to its default state with no input.
+// Reset 将输入设置为其默认状态，没有输入。
 func (m *Model) Reset() {
 	m.value = make([][]rune, minHeight, maxLines)
 	m.col = 0
@@ -601,35 +566,30 @@ func (m *Model) Reset() {
 	m.SetCursor(0)
 }
 
-// san initializes or retrieves the rune sanitizer.
+// san 初始化或检索字符清理器。
 func (m *Model) san() runeutil.Sanitizer {
 	if m.rsan == nil {
-		// Textinput has all its input on a single line so collapse
-		// newlines/tabs to single spaces.
+		// Textinput 将其所有输入都放在单行上，因此将换行符/制表符折叠为单个空格。
 		m.rsan = runeutil.NewSanitizer()
 	}
 	return m.rsan
 }
 
-// deleteBeforeCursor deletes all text before the cursor. Returns whether or
-// not the cursor blink should be reset.
+// deleteBeforeCursor 删除光标之前的所有文本。返回是否应该重置光标闪烁。
 func (m *Model) deleteBeforeCursor() {
 	m.value[m.row] = m.value[m.row][m.col:]
 	m.SetCursor(0)
 }
 
-// deleteAfterCursor deletes all text after the cursor. Returns whether or not
-// the cursor blink should be reset. If input is masked delete everything after
-// the cursor so as not to reveal word breaks in the masked input.
+// deleteAfterCursor 删除光标之后的所有文本。返回是否应该重置光标闪烁。
+// 如果输入被屏蔽，则删除光标之后的所有内容，以免在屏蔽输入中显示单词中断。
 func (m *Model) deleteAfterCursor() {
 	m.value[m.row] = m.value[m.row][:m.col]
 	m.SetCursor(len(m.value[m.row]))
 }
 
-// transposeLeft exchanges the runes at the cursor and immediately
-// before. No-op if the cursor is at the beginning of the line.  If
-// the cursor is not at the end of the line yet, moves the cursor to
-// the right.
+// transposeLeft 交换光标处的字符和紧随其后的字符。如果光标在行的开头，则无操作。
+// 如果光标尚未在行的末尾，则将光标向右移动。
 func (m *Model) transposeLeft() {
 	if m.col == 0 || len(m.value[m.row]) < 2 {
 		return
@@ -643,16 +603,14 @@ func (m *Model) transposeLeft() {
 	}
 }
 
-// deleteWordLeft deletes the word left to the cursor. Returns whether or not
-// the cursor blink should be reset.
+// deleteWordLeft 删除光标左侧的单词。返回是否应该重置光标闪烁。
 func (m *Model) deleteWordLeft() {
 	if m.col == 0 || len(m.value[m.row]) == 0 {
 		return
 	}
 
-	// Linter note: it's critical that we acquire the initial cursor position
-	// here prior to altering it via SetCursor() below. As such, moving this
-	// call into the corresponding if clause does not apply here.
+	// Linter 注意：在这里获取初始光标位置至关重要，因为在下面通过 SetCursor()
+	// 修改它之前。因此，将此调用移动到相应的 if 子句中不适用。
 	oldCol := m.col
 
 	m.SetCursor(m.col - 1)
@@ -660,7 +618,7 @@ func (m *Model) deleteWordLeft() {
 		if m.col <= 0 {
 			break
 		}
-		// ignore series of whitespace before cursor
+		// 忽略光标前的空白字符序列
 		m.SetCursor(m.col - 1)
 	}
 
@@ -669,7 +627,7 @@ func (m *Model) deleteWordLeft() {
 			m.SetCursor(m.col - 1)
 		} else {
 			if m.col > 0 {
-				// keep the previous space
+				// 保留前一个空格
 				m.SetCursor(m.col + 1)
 			}
 			break
@@ -683,7 +641,7 @@ func (m *Model) deleteWordLeft() {
 	}
 }
 
-// deleteWordRight deletes the word right to the cursor.
+// deleteWordRight 删除光标右侧的单词。
 func (m *Model) deleteWordRight() {
 	if m.col >= len(m.value[m.row]) || len(m.value[m.row]) == 0 {
 		return
@@ -692,7 +650,7 @@ func (m *Model) deleteWordRight() {
 	oldCol := m.col
 
 	for m.col < len(m.value[m.row]) && unicode.IsSpace(m.value[m.row][m.col]) {
-		// ignore series of whitespace after cursor
+		// 忽略光标后的空白字符序列
 		m.SetCursor(m.col + 1)
 	}
 
@@ -713,7 +671,7 @@ func (m *Model) deleteWordRight() {
 	m.SetCursor(oldCol)
 }
 
-// characterRight moves the cursor one character to the right.
+// characterRight 将光标向右移动一个字符。
 func (m *Model) characterRight() {
 	if m.col < len(m.value[m.row]) {
 		m.SetCursor(m.col + 1)
@@ -725,9 +683,8 @@ func (m *Model) characterRight() {
 	}
 }
 
-// characterLeft moves the cursor one character to the left.
-// If insideLine is set, the cursor is moved to the last
-// character in the previous line, instead of one past that.
+// characterLeft 将光标向左移动一个字符。
+// 如果设置了 insideLine，光标将移动到上一行的最后一个字符，而不是其后的一个字符。
 func (m *Model) characterLeft(insideLine bool) {
 	if m.col == 0 && m.row != 0 {
 		m.row--
@@ -741,9 +698,8 @@ func (m *Model) characterLeft(insideLine bool) {
 	}
 }
 
-// wordLeft moves the cursor one word to the left. Returns whether or not the
-// cursor blink should be reset. If input is masked, move input to the start
-// so as not to reveal word breaks in the masked input.
+// wordLeft 将光标向左移动一个单词。返回是否应该重置光标闪烁。
+// 如果输入被屏蔽，则将输入移动到开头，以免在屏蔽输入中显示单词中断。
 func (m *Model) wordLeft() {
 	for {
 		m.characterLeft(true /* insideLine */)
@@ -760,18 +716,17 @@ func (m *Model) wordLeft() {
 	}
 }
 
-// wordRight moves the cursor one word to the right. Returns whether or not the
-// cursor blink should be reset. If the input is masked, move input to the end
-// so as not to reveal word breaks in the masked input.
+// wordRight 将光标向右移动一个单词。返回是否应该重置光标闪烁。
+// 如果输入被屏蔽，则将输入移动到末尾，以免在屏蔽输入中显示单词中断。
 func (m *Model) wordRight() {
 	m.doWordRight(func(int, int) { /* nothing */ })
 }
 
 func (m *Model) doWordRight(fn func(charIdx int, pos int)) {
-	// Skip spaces forward.
+	// 向前跳过空格。
 	for m.col >= len(m.value[m.row]) || unicode.IsSpace(m.value[m.row][m.col]) {
 		if m.row == len(m.value)-1 && m.col == len(m.value[m.row]) {
-			// End of text.
+			// 文本末尾。
 			break
 		}
 		m.characterRight()
@@ -788,21 +743,21 @@ func (m *Model) doWordRight(fn func(charIdx int, pos int)) {
 	}
 }
 
-// uppercaseRight changes the word to the right to uppercase.
+// uppercaseRight 将右侧的单词更改为大写。
 func (m *Model) uppercaseRight() {
 	m.doWordRight(func(_ int, i int) {
 		m.value[m.row][i] = unicode.ToUpper(m.value[m.row][i])
 	})
 }
 
-// lowercaseRight changes the word to the right to lowercase.
+// lowercaseRight 将右侧的单词更改为小写。
 func (m *Model) lowercaseRight() {
 	m.doWordRight(func(_ int, i int) {
 		m.value[m.row][i] = unicode.ToLower(m.value[m.row][i])
 	})
 }
 
-// capitalizeRight changes the word to the right to title case.
+// capitalizeRight 将右侧的单词更改为标题大小写。
 func (m *Model) capitalizeRight() {
 	m.doWordRight(func(charIdx int, i int) {
 		if charIdx == 0 {
@@ -811,19 +766,16 @@ func (m *Model) capitalizeRight() {
 	})
 }
 
-// LineInfo returns the number of characters from the start of the
-// (soft-wrapped) line and the (soft-wrapped) line width.
+// LineInfo 返回从（软换行）行开头到（软换行）行的字符数和（软换行）行宽度。
 func (m Model) LineInfo() LineInfo {
 	grid := m.memoizedWrap(m.value[m.row], m.width)
 
-	// Find out which line we are currently on. This can be determined by the
-	// m.col and counting the number of runes that we need to skip.
+	// 找出我们当前在哪一行。这可以通过 m.col 和计算我们需要跳过的字符数来确定。
 	var counter int
 	for i, line := range grid {
-		// We've found the line that we are on
+		// 我们找到了我们所在的行
 		if counter+len(line) == m.col && i+1 < len(grid) {
-			// We wrap around to the next line if we are at the end of the
-			// previous line so that we can be at the very beginning of the row
+			// 如果我们在上一行的末尾，则绕到下一行，以便我们可以位于行的最开头
 			return LineInfo{
 				CharOffset:   0,
 				ColumnOffset: 0,
@@ -852,8 +804,7 @@ func (m Model) LineInfo() LineInfo {
 	return LineInfo{}
 }
 
-// repositionView repositions the view of the viewport based on the defined
-// scrolling behavior.
+// repositionView 根据定义的滚动行为重新定位视口的视图。
 func (m *Model) repositionView() {
 	minimum := m.viewport.YOffset
 	maximum := minimum + m.viewport.Height - 1
@@ -865,85 +816,78 @@ func (m *Model) repositionView() {
 	}
 }
 
-// Width returns the width of the textarea.
+// Width 返回文本区域的宽度。
 func (m Model) Width() int {
 	return m.width
 }
 
-// moveToBegin moves the cursor to the beginning of the input.
+// moveToBegin 将光标移动到输入的开头。
 func (m *Model) moveToBegin() {
 	m.row = 0
 	m.SetCursor(0)
 }
 
-// moveToEnd moves the cursor to the end of the input.
+// moveToEnd 将光标移动到输入的末尾。
 func (m *Model) moveToEnd() {
 	m.row = len(m.value) - 1
 	m.SetCursor(len(m.value[m.row]))
 }
 
-// SetWidth sets the width of the textarea to fit exactly within the given width.
-// This means that the textarea will account for the width of the prompt and
-// whether or not line numbers are being shown.
+// SetWidth 设置文本区域的宽度以完全适应给定的宽度。
+// 这意味着文本区域将考虑提示符的宽度以及是否显示行号。
 //
-// Ensure that SetWidth is called after setting the Prompt and ShowLineNumbers,
-// It is important that the width of the textarea be exactly the given width
-// and no more.
+// 确保在设置 Prompt 和 ShowLineNumbers 之后调用 SetWidth，
+// 文本区域的宽度必须正好是给定的宽度，不能更多。
 func (m *Model) SetWidth(w int) {
-	// Update prompt width only if there is no prompt function as SetPromptFunc
-	// updates the prompt width when it is called.
+	// 仅当没有提示符函数时才更新提示符宽度，因为 SetPromptFunc
+	// 在调用时会更新提示符宽度。
 	if m.promptFunc == nil {
 		m.promptWidth = uniseg.StringWidth(m.Prompt)
 	}
 
-	// Add base style borders and padding to reserved outer width.
+	// 将基础样式边框和填充添加到保留的外部宽度。
 	reservedOuter := m.style.Base.GetHorizontalFrameSize()
 
-	// Add prompt width to reserved inner width.
+	// 将提示符宽度添加到保留的内部宽度。
 	reservedInner := m.promptWidth
 
-	// Add line number width to reserved inner width.
+	// 将行号宽度添加到保留的内部宽度。
 	if m.ShowLineNumbers {
-		const lnWidth = 4 // Up to 3 digits for line number plus 1 margin.
+		const lnWidth = 4 // 行号最多 3 位数加上 1 个边距。
 		reservedInner += lnWidth
 	}
 
-	// Input width must be at least one more than the reserved inner and outer
-	// width. This gives us a minimum input width of 1.
+	// 输入宽度必须至少比保留的内部和外部宽度多 1。这给我们最小的输入宽度为 1。
 	minWidth := reservedInner + reservedOuter + 1
 	inputWidth := max(w, minWidth)
 
-	// Input width must be no more than maximum width.
+	// 输入宽度不得超过最大宽度。
 	if m.MaxWidth > 0 {
 		inputWidth = min(inputWidth, m.MaxWidth)
 	}
 
-	// Since the width of the viewport and input area is dependent on the width of
-	// borders, prompt and line numbers, we need to calculate it by subtracting
-	// the reserved width from them.
+	// 由于视口和输入区域的宽度取决于边框、提示符和行号的宽度，
+	// 我们需要通过从中减去保留的宽度来计算它。
 
 	m.viewport.Width = inputWidth - reservedOuter
 	m.width = inputWidth - reservedOuter - reservedInner
 }
 
-// SetPromptFunc supersedes the Prompt field and sets a dynamic prompt
-// instead.
-// If the function returns a prompt that is shorter than the
-// specified promptWidth, it will be padded to the left.
-// If it returns a prompt that is longer, display artifacts
-// may occur; the caller is responsible for computing an adequate
-// promptWidth.
+// SetPromptFunc 取代 Prompt 字段并设置动态提示符。
+// 如果函数返回的提示符比指定的 promptWidth 短，它将在左侧填充。
+// 如果它返回的提示符更长，可能会出现显示伪影；
+// 调用者负责计算足够的 promptWidth。
 func (m *Model) SetPromptFunc(promptWidth int, fn func(lineIdx int) string) {
 	m.promptFunc = fn
 	m.promptWidth = promptWidth
 }
 
-// Height returns the current height of the textarea.
+// Height 返回文本区域的当前高度。
 func (m Model) Height() int {
 	return m.height
 }
 
-// SetHeight sets the height of the textarea.
+// SetHeight 设置文本区域的高度。
 func (m *Model) SetHeight(h int) {
 	if m.MaxHeight > 0 {
 		m.height = clamp(h, minHeight, m.MaxHeight)
@@ -954,14 +898,14 @@ func (m *Model) SetHeight(h int) {
 	}
 }
 
-// Update is the Bubble Tea update loop.
+// Update 是 Bubble Tea 更新循环。
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	if !m.focus {
 		m.Cursor.Blur()
 		return m, nil
 	}
 
-	// Used to determine if the cursor should blink.
+	// 用于确定光标是否应该闪烁。
 	oldRow, oldCol := m.cursorLineNumber(), m.col
 
 	var cmds []tea.Cmd
@@ -1089,7 +1033,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View renders the text area in its current state.
+// View 渲染文本区域的当前状态。
 func (m Model) View() string {
 	if m.Value() == "" && m.row == 0 && m.col == 0 && m.Placeholder != "" {
 		return m.placeholderView()
@@ -1141,7 +1085,7 @@ func (m Model) View() string {
 				}
 			}
 
-			// Note the widest line number for padding purposes later.
+			// 记录最宽的行号以便稍后填充。
 			lnw := lipgloss.Width(ln)
 			if lnw > widestLineNumber {
 				widestLineNumber = lnw
@@ -1149,14 +1093,11 @@ func (m Model) View() string {
 
 			strwidth := uniseg.StringWidth(string(wrappedLine))
 			padding := m.width - strwidth
-			// If the trailing space causes the line to be wider than the
-			// width, we should not draw it to the screen since it will result
-			// in an extra space at the end of the line which can look off when
-			// the cursor line is showing.
+			// 如果尾随空格导致行比宽度更宽，我们不应该将其绘制到屏幕上，
+			// 因为这会导致行末尾有一个额外的空格，这在显示光标行时看起来不正常。
 			if strwidth > m.width {
-				// The character causing the line to be wider than the width is
-				// guaranteed to be a space since any other character would
-				// have been wrapped.
+				// 导致行比宽度更宽的字符保证是一个空格，因为任何其他字符
+				// 都会被换行。
 				wrappedLine = []rune(strings.TrimSuffix(string(wrappedLine), " "))
 				padding -= m.width - strwidth
 			}
@@ -1179,15 +1120,14 @@ func (m Model) View() string {
 		}
 	}
 
-	// Always show at least `m.Height` lines at all times.
-	// To do this we can simply pad out a few extra new lines in the view.
+	// 始终至少显示 `m.Height` 行。为此，我们可以在视图中简单地填充一些额外的换行符。
 	for i := 0; i < m.height; i++ {
 		prompt := m.getPromptString(displayLine)
 		prompt = m.style.computedPrompt().Render(prompt)
 		s.WriteString(prompt)
 		displayLine++
 
-		// Write end of buffer content
+		// 写入缓冲区结束内容
 		leftGutter := string(m.EndOfBufferCharacter)
 		rightGapWidth := m.Width() - lipgloss.Width(leftGutter) + widestLineNumber
 		rightGap := strings.Repeat(" ", max(0, rightGapWidth))
@@ -1199,11 +1139,9 @@ func (m Model) View() string {
 	return m.style.Base.Render(m.viewport.View())
 }
 
-// formatLineNumber formats the line number for display dynamically based on
-// the maximum number of lines.
+// formatLineNumber 根据最大行数动态格式化行号以供显示。
 func (m Model) formatLineNumber(x any) string {
-	// XXX: ultimately we should use a max buffer height, which has yet to be
-	// implemented.
+	// XXX：最终我们应该使用最大缓冲区高度，但这尚未实现。
 	digits := len(strconv.Itoa(m.MaxHeight))
 	return fmt.Sprintf(" %*v ", digits, x)
 }
@@ -1221,7 +1159,7 @@ func (m Model) getPromptString(displayLine int) (prompt string) {
 	return prompt
 }
 
-// placeholderView returns the prompt and placeholder view, if any.
+// placeholderView 返回提示符和占位符视图（如果有）。
 func (m Model) placeholderView() string {
 	var (
 		s     strings.Builder
@@ -1229,11 +1167,11 @@ func (m Model) placeholderView() string {
 		style = m.style.computedPlaceholder()
 	)
 
-	// word wrap lines
+	// 自动换行
 	pwordwrap := ansi.Wordwrap(p, m.width, "")
-	// wrap lines (handles lines that could not be word wrapped)
+	// 换行（处理无法自动换行的行）
 	pwrap := ansi.Hardwrap(pwordwrap, m.width, true)
-	// split string by new lines
+	// 按换行符分割字符串
 	plines := strings.Split(strings.TrimSpace(pwrap), "\n")
 
 	for i := 0; i < m.height; i++ {
@@ -1244,15 +1182,15 @@ func (m Model) placeholderView() string {
 			lineNumberStyle = m.style.computedCursorLineNumber()
 		}
 
-		// render prompt
+		// 渲染提示符
 		prompt := m.getPromptString(i)
 		prompt = m.style.computedPrompt().Render(prompt)
 		s.WriteString(lineStyle.Render(prompt))
 
-		// when show line numbers enabled:
-		// - render line number for only the cursor line
-		// - indent other placeholder lines
-		// this is consistent with vim with line numbers enabled
+		// 当启用显示行号时：
+		// - 仅渲染光标行的行号
+		// - 缩进其他占位符行
+		// 这与启用行号的 vim 一致
 		if m.ShowLineNumbers {
 			var ln string
 
@@ -1267,30 +1205,30 @@ func (m Model) placeholderView() string {
 		}
 
 		switch {
-		// first line
+		// 第一行
 		case i == 0:
-			// first character of first line as cursor with character
+			// 第一行的第一个字符作为带有字符的光标
 			m.Cursor.TextStyle = m.style.computedPlaceholder()
 
 			ch, rest, _, _ := uniseg.FirstGraphemeClusterInString(plines[0], 0)
 			m.Cursor.SetChar(ch)
 			s.WriteString(lineStyle.Render(m.Cursor.View()))
 
-			// the rest of the first line
+			// 第一行的其余部分
 			s.WriteString(lineStyle.Render(style.Render(rest)))
-		// remaining lines
+		// 剩余行
 		case len(plines) > i:
-			// current line placeholder text
+			// 当前行占位符文本
 			if len(plines) > i {
 				s.WriteString(lineStyle.Render(style.Render(plines[i] + strings.Repeat(" ", max(0, m.width-uniseg.StringWidth(plines[i]))))))
 			}
 		default:
-			// end of line buffer character
+			// 行缓冲区结束字符
 			eob := m.style.computedEndOfBuffer().Render(string(m.EndOfBufferCharacter))
 			s.WriteString(eob)
 		}
 
-		// terminate with new line
+		// 以换行符终止
 		s.WriteRune('\n')
 	}
 
@@ -1298,7 +1236,7 @@ func (m Model) placeholderView() string {
 	return m.style.Base.Render(m.viewport.View())
 }
 
-// Blink returns the blink command for the cursor.
+// Blink 返回光标的闪烁命令。
 func Blink() tea.Msg {
 	return cursor.Blink()
 }
@@ -1313,40 +1251,38 @@ func (m Model) memoizedWrap(runes []rune, width int) [][]rune {
 	return v
 }
 
-// cursorLineNumber returns the line number that the cursor is on.
-// This accounts for soft wrapped lines.
+// cursorLineNumber 返回光标所在的行号。这考虑了软换行。
 func (m Model) cursorLineNumber() int {
 	line := 0
 	for i := 0; i < m.row; i++ {
-		// Calculate the number of lines that the current line will be split
-		// into.
+		// 计算当前行将被分割成的行数。
 		line += len(m.memoizedWrap(m.value[i], m.width))
 	}
 	line += m.LineInfo().RowOffset
 	return line
 }
 
-// mergeLineBelow merges the current line the cursor is on with the line below.
+// mergeLineBelow 将光标所在的当前行与下面的行合并。
 func (m *Model) mergeLineBelow(row int) {
 	if row >= len(m.value)-1 {
 		return
 	}
 
-	// To perform a merge, we will need to combine the two lines and then
+	// 要执行合并，我们需要将两行组合起来，然后
 	m.value[row] = append(m.value[row], m.value[row+1]...)
 
-	// Shift all lines up by one
+	// 将所有行向上移动一行
 	for i := row + 1; i < len(m.value)-1; i++ {
 		m.value[i] = m.value[i+1]
 	}
 
-	// And, remove the last line
+	// 并且，删除最后一行
 	if len(m.value) > 0 {
 		m.value = m.value[:len(m.value)-1]
 	}
 }
 
-// mergeLineAbove merges the current line the cursor is on with the line above.
+// mergeLineAbove 将光标所在的当前行与上面的行合并。
 func (m *Model) mergeLineAbove(row int) {
 	if row <= 0 {
 		return
@@ -1355,24 +1291,23 @@ func (m *Model) mergeLineAbove(row int) {
 	m.col = len(m.value[row-1])
 	m.row = m.row - 1
 
-	// To perform a merge, we will need to combine the two lines and then
+	// 要执行合并，我们需要将两行组合起来，然后
 	m.value[row-1] = append(m.value[row-1], m.value[row]...)
 
-	// Shift all lines up by one
+	// 将所有行向上移动一行
 	for i := row; i < len(m.value)-1; i++ {
 		m.value[i] = m.value[i+1]
 	}
 
-	// And, remove the last line
+	// 并且，删除最后一行
 	if len(m.value) > 0 {
 		m.value = m.value[:len(m.value)-1]
 	}
 }
 
 func (m *Model) splitLine(row, col int) {
-	// To perform a split, take the current line and keep the content before
-	// the cursor, take the content after the cursor and make it the content of
-	// the line underneath, and shift the remaining lines down by one
+	// 要执行分割，取当前行并保留光标之前的内容，取光标之后的内容
+	// 并使其成为下方行的内容，然后将剩余行向下移动一行
 	head, tailSrc := m.value[row][:col], m.value[row][col:]
 	tail := make([]rune, len(tailSrc))
 	copy(tail, tailSrc)
@@ -1386,7 +1321,7 @@ func (m *Model) splitLine(row, col int) {
 	m.row++
 }
 
-// Paste is a command for pasting from the clipboard into the text input.
+// Paste 是从剪贴板粘贴到文本输入的命令。
 func Paste() tea.Msg {
 	str, err := clipboard.ReadAll()
 	if err != nil {
@@ -1403,7 +1338,7 @@ func wrap(runes []rune, width int) [][]rune {
 		spaces int
 	)
 
-	// Word wrap the runes
+	// 对字符进行自动换行
 	for _, r := range runes {
 		if unicode.IsSpace(r) {
 			spaces++
@@ -1426,12 +1361,12 @@ func wrap(runes []rune, width int) [][]rune {
 				word = nil
 			}
 		} else {
-			// If the last character is a double-width rune, then we may not be able to add it to this line
-			// as it might cause us to go past the width.
+			// 如果最后一个字符是双宽度字符，那么我们可能无法将其添加到此行，
+			// 因为它可能会导致我们超过宽度。
 			lastCharLen := rw.RuneWidth(word[len(word)-1])
 			if uniseg.StringWidth(string(word))+lastCharLen > width {
-				// If the current line has any content, let's move to the next
-				// line because the current word fills up the entire line.
+				// 如果当前行有任何内容，让我们移动到下一行，
+				// 因为当前单词填满了整行。
 				if len(lines[row]) > 0 {
 					row++
 					lines = append(lines, []rune{})
@@ -1445,10 +1380,8 @@ func wrap(runes []rune, width int) [][]rune {
 	if uniseg.StringWidth(string(lines[row]))+uniseg.StringWidth(string(word))+spaces >= width {
 		lines = append(lines, []rune{})
 		lines[row+1] = append(lines[row+1], word...)
-		// We add an extra space at the end of the line to account for the
-		// trailing space at the end of the previous soft-wrapped lines so that
-		// behaviour when navigating is consistent and so that we don't need to
-		// continually add edges to handle the last line of the wrapped input.
+		// 我们在行末尾添加一个额外的空格，以考虑前一个软换行行末尾的尾随空格，
+		// 这样导航时的行为是一致的，并且我们不需要不断添加边缘来处理换行输入的最后一行。
 		spaces++
 		lines[row+1] = append(lines[row+1], repeatSpaces(spaces)...)
 	} else {

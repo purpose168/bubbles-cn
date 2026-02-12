@@ -1,8 +1,8 @@
-name: lint
+name: 代码检查
 on:
   push:
   pull_request:
 
 jobs:
   lint:
-    uses: charmbracelet/meta/.github/workflows/lint.yml@main
+    uses: purpose168/meta-cn/.github/workflows/lint.yml@main

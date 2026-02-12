@@ -1,4 +1,4 @@
-// Package progress provides a simple progress bar for Bubble Tea applications.
+// Package progress 为 Bubble Tea 应用程序提供简单的进度条。
 package progress
 
 import (
@@ -8,30 +8,30 @@ import (
 	"sync/atomic"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/harmonica"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/muesli/termenv"
+	tea "github.com/purpose168/bubbletea-cn"
+	"github.com/purpose168/charm-experimental-packages-cn/ansi"
+	lipgloss "github.com/purpose168/lipgloss-cn"
 )
 
-// Internal ID management. Used during animating to assure that frame messages
-// can only be received by progress components that sent them.
+// 内部 ID 管理。用于动画期间确保帧消息只能由发送它们的进度组件接收。
 var lastID int64
 
+// nextID 生成下一个唯一的 ID
 func nextID() int {
 	return int(atomic.AddInt64(&lastID, 1))
 }
 
 const (
-	fps              = 60
-	defaultWidth     = 40
-	defaultFrequency = 18.0
-	defaultDamping   = 1.0
+	fps              = 60      // 帧率
+	defaultWidth     = 40      // 默认宽度
+	defaultFrequency = 18.0    // 默认频率
+	defaultDamping   = 1.0     // 默认阻尼
 )
 
-// Option is used to set options in New. For example:
+// Option 用于在 New 中设置选项。例如：
 //
 //	    progress := New(
 //		       WithRamp("#ff0000", "#0000ff"),
@@ -39,33 +39,31 @@ const (
 //	    )
 type Option func(*Model)
 
-// WithDefaultGradient sets a gradient fill with default colors.
+// WithDefaultGradient 设置使用默认颜色的渐变填充。
 func WithDefaultGradient() Option {
 	return WithGradient("#5A56E0", "#EE6FF8")
 }
 
-// WithGradient sets a gradient fill blending between two colors.
+// WithGradient 设置在两种颜色之间混合的渐变填充。
 func WithGradient(colorA, colorB string) Option {
 	return func(m *Model) {
 		m.setRamp(colorA, colorB, false)
 	}
 }
 
-// WithDefaultScaledGradient sets a gradient with default colors, and scales the
-// gradient to fit the filled portion of the ramp.
+// WithDefaultScaledGradient 设置使用默认颜色的渐变，并缩放渐变以适应填充的渐变部分。
 func WithDefaultScaledGradient() Option {
 	return WithScaledGradient("#5A56E0", "#EE6FF8")
 }
 
-// WithScaledGradient scales the gradient to fit the width of the filled portion of
-// the progress bar.
+// WithScaledGradient 缩放渐变以适应进度条填充部分的宽度。
 func WithScaledGradient(colorA, colorB string) Option {
 	return func(m *Model) {
 		m.setRamp(colorA, colorB, true)
 	}
 }
 
-// WithSolidFill sets the progress to use a solid fill with the given color.
+// WithSolidFill 设置进度条使用给定颜色的纯色填充。
 func WithSolidFill(color string) Option {
 	return func(m *Model) {
 		m.FullColor = color
@@ -73,7 +71,7 @@ func WithSolidFill(color string) Option {
 	}
 }
 
-// WithFillCharacters sets the characters used to construct the full and empty components of the progress bar.
+// WithFillCharacters 设置用于构建进度条完整和空部分的字符。
 func WithFillCharacters(full rune, empty rune) Option {
 	return func(m *Model) {
 		m.Full = full
@@ -81,25 +79,23 @@ func WithFillCharacters(full rune, empty rune) Option {
 	}
 }
 
-// WithoutPercentage hides the numeric percentage.
+// WithoutPercentage 隐藏数字百分比。
 func WithoutPercentage() Option {
 	return func(m *Model) {
 		m.ShowPercentage = false
 	}
 }
 
-// WithWidth sets the initial width of the progress bar. Note that you can also
-// set the width via the Width property, which can come in handy if you're
-// waiting for a tea.WindowSizeMsg.
+// WithWidth 设置进度条的初始宽度。请注意，您也可以通过 Width 属性设置宽度，
+// 如果您正在等待 tea.WindowSizeMsg，这会很方便。
 func WithWidth(w int) Option {
 	return func(m *Model) {
 		m.Width = w
 	}
 }
 
-// WithSpringOptions sets the initial frequency and damping options for the
-// progress bar's built-in spring-based animation. Frequency corresponds to
-// speed, and damping to bounciness. For details see:
+// WithSpringOptions 设置进度条内置基于弹簧动画的初始频率和阻尼选项。
+// 频率对应速度，阻尼对应弹性。详细信息请参阅：
 //
 // https://github.com/charmbracelet/harmonica
 func WithSpringOptions(frequency, damping float64) Option {
@@ -109,66 +105,64 @@ func WithSpringOptions(frequency, damping float64) Option {
 	}
 }
 
-// WithColorProfile sets the color profile to use for the progress bar.
+// WithColorProfile 设置进度条使用的颜色配置文件。
 func WithColorProfile(p termenv.Profile) Option {
 	return func(m *Model) {
 		m.colorProfile = p
 	}
 }
 
-// FrameMsg indicates that an animation step should occur.
+// FrameMsg 指示应该发生动画步骤。
 type FrameMsg struct {
-	id  int
-	tag int
+	id  int // 进度条 ID
+	tag int // 标签，用于防止接收帧消息过快
 }
 
-// Model stores values we'll use when rendering the progress bar.
+// Model 存储我们在渲染进度条时将使用的值。
 type Model struct {
-	// An identifier to keep us from receiving messages intended for other
-	// progress bars.
+	// 一个标识符，防止我们接收其他进度条的消息。
 	id int
 
-	// An identifier to keep us from receiving frame messages too quickly.
+	// 一个标识符，防止我们过快地接收帧消息。
 	tag int
 
-	// Total width of the progress bar, including percentage, if set.
+	// 进度条的总宽度，包括百分比（如果设置）。
 	Width int
 
-	// "Filled" sections of the progress bar.
-	Full      rune
-	FullColor string
+	// 进度条的"已填充"部分。
+	Full      rune   // 填充字符
+	FullColor string // 填充颜色
 
-	// "Empty" sections of the progress bar.
-	Empty      rune
-	EmptyColor string
+	// 进度条的"空"部分。
+	Empty      rune   // 空字符
+	EmptyColor string // 空颜色
 
-	// Settings for rendering the numeric percentage.
-	ShowPercentage  bool
-	PercentFormat   string // a fmt string for a float
-	PercentageStyle lipgloss.Style
+	// 渲染数字百分比的设置。
+	ShowPercentage  bool            // 是否显示百分比
+	PercentFormat   string          // 浮点数的格式字符串
+	PercentageStyle lipgloss.Style  // 百分比样式
 
-	// Members for animated transitions.
-	spring           harmonica.Spring
-	springCustomized bool
-	percentShown     float64 // percent currently displaying
-	targetPercent    float64 // percent to which we're animating
-	velocity         float64
+	// 动画过渡的成员。
+	spring           harmonica.Spring // 弹簧对象
+	springCustomized bool            // 弹簧是否已自定义
+	percentShown     float64         // 当前显示的百分比
+	targetPercent    float64         // 我们正在动画化的目标百分比
+	velocity         float64         // 速度
 
-	// Gradient settings
-	useRamp    bool
-	rampColorA colorful.Color
-	rampColorB colorful.Color
+	// 渐变设置
+	useRamp    bool            // 是否使用渐变
+	rampColorA colorful.Color  // 渐变起始颜色
+	rampColorB colorful.Color  // 渐变结束颜色
 
-	// When true, we scale the gradient to fit the width of the filled section
-	// of the progress bar. When false, the width of the gradient will be set
-	// to the full width of the progress bar.
+	// 当为 true 时，我们缩放渐变以适应进度条填充部分的宽度。
+	// 当为 false 时，渐变的宽度将设置为进度条的全宽。
 	scaleRamp bool
 
-	// Color profile for the progress bar.
+	// 进度条的颜色配置文件。
 	colorProfile termenv.Profile
 }
 
-// New returns a model with default values.
+// New 返回一个带有默认值的模型。
 func New(opts ...Option) Model {
 	m := Model{
 		id:             nextID(),
@@ -193,20 +187,19 @@ func New(opts ...Option) Model {
 	return m
 }
 
-// NewModel returns a model with default values.
+// NewModel 返回一个带有默认值的模型。
 //
-// Deprecated: use [New] instead.
+// Deprecated: 请改用 [New]。
 var NewModel = New
 
-// Init exists to satisfy the tea.Model interface.
+// Init 存在以满足 tea.Model 接口。
 func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-// Update is used to animate the progress bar during transitions. Use
-// SetPercent to create the command you'll need to trigger the animation.
+// Update 用于在过渡期间动画化进度条。使用 SetPercent 创建触发动画所需的命令。
 //
-// If you're rendering with ViewAs you won't need this.
+// 如果您使用 ViewAs 渲染，则不需要此功能。
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case FrameMsg:
@@ -214,7 +207,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// If we've more or less reached equilibrium, stop updating.
+		// 如果我们已或多或少达到平衡，则停止更新。
 		if !m.IsAnimating() {
 			return m, nil
 		}
@@ -227,55 +220,50 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-// SetSpringOptions sets the frequency and damping for the current spring.
-// Frequency corresponds to speed, and damping to bounciness. For details see:
+// SetSpringOptions 设置当前弹簧的频率和阻尼。
+// 频率对应速度，阻尼对应弹性。详细信息请参阅：
 //
 // https://github.com/charmbracelet/harmonica
 func (m *Model) SetSpringOptions(frequency, damping float64) {
 	m.spring = harmonica.NewSpring(harmonica.FPS(fps), frequency, damping)
 }
 
-// Percent returns the current visible percentage on the model. This is only
-// relevant when you're animating the progress bar.
+// Percent 返回模型上当前可见的百分比。这仅在您动画化进度条时相关。
 //
-// If you're rendering with ViewAs you won't need this.
+// 如果您使用 ViewAs 渲染，则不需要此功能。
 func (m Model) Percent() float64 {
 	return m.targetPercent
 }
 
-// SetPercent sets the percentage state of the model as well as a command
-// necessary for animating the progress bar to this new percentage.
+// SetPercent 设置模型的百分比状态以及将进度条动画化到此新百分比所需的命令。
 //
-// If you're rendering with ViewAs you won't need this.
+// 如果您使用 ViewAs 渲染，则不需要此功能。
 func (m *Model) SetPercent(p float64) tea.Cmd {
 	m.targetPercent = math.Max(0, math.Min(1, p))
 	m.tag++
 	return m.nextFrame()
 }
 
-// IncrPercent increments the percentage by a given amount, returning a command
-// necessary to animate the progress bar to the new percentage.
+// IncrPercent 按给定量增加百分比，返回将进度条动画化到新百分比所需的命令。
 //
-// If you're rendering with ViewAs you won't need this.
+// 如果您使用 ViewAs 渲染，则不需要此功能。
 func (m *Model) IncrPercent(v float64) tea.Cmd {
 	return m.SetPercent(m.Percent() + v)
 }
 
-// DecrPercent decrements the percentage by a given amount, returning a command
-// necessary to animate the progress bar to the new percentage.
+// DecrPercent 按给定量减少百分比，返回将进度条动画化到新百分比所需的命令。
 //
-// If you're rendering with ViewAs you won't need this.
+// 如果您使用 ViewAs 渲染，则不需要此功能。
 func (m *Model) DecrPercent(v float64) tea.Cmd {
 	return m.SetPercent(m.Percent() - v)
 }
 
-// View renders an animated progress bar in its current state. To render
-// a static progress bar based on your own calculations use ViewAs instead.
+// View 在其当前状态下渲染动画进度条。要基于您自己的计算渲染静态进度条，请改用 ViewAs。
 func (m Model) View() string {
 	return m.ViewAs(m.percentShown)
 }
 
-// ViewAs renders the progress bar with a given percentage.
+// ViewAs 使用给定的百分比渲染进度条。
 func (m Model) ViewAs(percent float64) string {
 	b := strings.Builder{}
 	percentView := m.percentageView(percent)
@@ -284,28 +272,29 @@ func (m Model) ViewAs(percent float64) string {
 	return b.String()
 }
 
+// nextFrame 生成下一帧动画的命令
 func (m *Model) nextFrame() tea.Cmd {
 	return tea.Tick(time.Second/time.Duration(fps), func(time.Time) tea.Msg {
 		return FrameMsg{id: m.id, tag: m.tag}
 	})
 }
 
+// barView 渲染进度条
 func (m Model) barView(b *strings.Builder, percent float64, textWidth int) {
 	var (
-		tw = max(0, m.Width-textWidth)                // total width
-		fw = int(math.Round((float64(tw) * percent))) // filled width
-		p  float64
+		tw = max(0, m.Width-textWidth)                // 总宽度
+		fw = int(math.Round((float64(tw) * percent))) // 填充宽度
+		p  float64                                    // 渐变位置
 	)
 
 	fw = max(0, min(tw, fw))
 
 	if m.useRamp {
-		// Gradient fill
+		// 渐变填充
 		for i := 0; i < fw; i++ {
 			if fw == 1 {
-				// this is up for debate: in a gradient of width=1, should the
-				// single character rendered be the first color, the last color
-				// or exactly 50% in between? I opted for 50%
+				// 这有待商榷：在宽度=1 的渐变中，单个渲染的字符应该是
+				// 第一种颜色、最后一种颜色还是正好在中间 50%？我选择了 50%
 				p = 0.5
 			} else if m.scaleRamp {
 				p = float64(i) / float64(fw-1)
@@ -320,17 +309,18 @@ func (m Model) barView(b *strings.Builder, percent float64, textWidth int) {
 			)
 		}
 	} else {
-		// Solid fill
+		// 纯色填充
 		s := termenv.String(string(m.Full)).Foreground(m.color(m.FullColor)).String()
 		b.WriteString(strings.Repeat(s, fw))
 	}
 
-	// Empty fill
+	// 空填充
 	e := termenv.String(string(m.Empty)).Foreground(m.color(m.EmptyColor)).String()
 	n := max(0, tw-fw)
 	b.WriteString(strings.Repeat(e, n))
 }
 
+// percentageView 渲染百分比视图
 func (m Model) percentageView(percent float64) string {
 	if !m.ShowPercentage {
 		return ""
@@ -341,10 +331,10 @@ func (m Model) percentageView(percent float64) string {
 	return percentage
 }
 
+// setRamp 设置渐变颜色
 func (m *Model) setRamp(colorA, colorB string, scaled bool) {
-	// In the event of an error colors here will default to black. For
-	// usability's sake, and because such an error is only cosmetic, we're
-	// ignoring the error.
+	// 如果出现错误，这里的颜色将默认为黑色。为了可用性的缘故，
+	// 并且因为这样的错误只是美观问题，我们忽略错误。
 	a, _ := colorful.Hex(colorA)
 	b, _ := colorful.Hex(colorB)
 
@@ -354,11 +344,12 @@ func (m *Model) setRamp(colorA, colorB string, scaled bool) {
 	m.rampColorB = b
 }
 
+// color 返回颜色对象
 func (m Model) color(c string) termenv.Color {
 	return m.colorProfile.Color(c)
 }
 
-// IsAnimating returns false if the progress bar reached equilibrium and is no longer animating.
+// IsAnimating 如果进度条达到平衡并且不再动画化，则返回 false。
 func (m *Model) IsAnimating() bool {
 	dist := math.Abs(m.percentShown - m.targetPercent)
 	return !(dist < 0.001 && m.velocity < 0.01)

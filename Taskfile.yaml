@@ -1,14 +1,14 @@
 # https://taskfile.dev
 
-version: '3'
+version: '3' # Taskfile 版本号
 
-tasks:
-  lint:
-    desc: Run lint
-    cmds:
-      - golangci-lint run
+tasks: # 任务列表定义
+  lint: # 代码检查任务
+    desc: Run lint # 运行代码检查
+    cmds: # 执行的命令列表
+      - golangci-lint run # 运行 golangci-lint 代码检查工具
 
-  test:
-    desc: Run tests
-    cmds:
-      - go test ./... {{.CLI_ARGS}}
+  test: # 测试任务
+    desc: Run tests # 运行测试
+    cmds: # 执行的命令列表
+      - go test ./... {{.CLI_ARGS}} # 运行所有包的测试，支持传入额外的命令行参数

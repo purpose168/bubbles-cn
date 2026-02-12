@@ -2,4 +2,4 @@
 version: 2
 includes:
   - from_url:
-      url: charmbracelet/meta/main/goreleaser-lib.yaml
+      url: purpose168/meta-cn/main/goreleaser-lib.yaml

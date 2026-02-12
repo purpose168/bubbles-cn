@@ -1,6 +1,5 @@
-// Package list provides a feature-rich Bubble Tea component for browsing
-// a general purpose list of items. It features optional filtering, pagination,
-// help, status messages, and a spinner to indicate activity.
+// Package list 提供了一个功能丰富的 Bubble Tea 组件，用于浏览通用项目列表。
+// 它具有可选的过滤、分页、帮助、状态消息和用于指示活动的 spinner 等功能。
 package list
 
 import (
@@ -11,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
+	tea "github.com/purpose168/bubbletea-cn"
+	"github.com/purpose168/charm-experimental-packages-cn/ansi"
+	lipgloss "github.com/purpose168/lipgloss-cn"
 	"github.com/sahilm/fuzzy"
 
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/paginator"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/purpose168/bubbles-cn/help"
+	"github.com/purpose168/bubbles-cn/key"
+	"github.com/purpose168/bubbles-cn/paginator"
+	"github.com/purpose168/bubbles-cn/spinner"
+	"github.com/purpose168/bubbles-cn/textinput"
 )
 
 func clamp[T cmp.Ordered](v, low, high T) T {
@@ -30,40 +29,35 @@ func clamp[T cmp.Ordered](v, low, high T) T {
 	return min(high, max(low, v))
 }
 
-// Item is an item that appears in the list.
+// Item 是列表中显示的项目。
 type Item interface {
-	// FilterValue is the value we use when filtering against this item when
-	// we're filtering the list.
+	// FilterValue 是我们在过滤列表时用于与此项目进行过滤的值。
 	FilterValue() string
 }
 
-// ItemDelegate encapsulates the general functionality for all list items. The
-// benefit to separating this logic from the item itself is that you can change
-// the functionality of items without changing the actual items themselves.
+// ItemDelegate 封装了所有列表项的通用功能。将此逻辑与项目本身分离的好处是，
+// 您可以更改项目的功能而无需更改实际项目本身。
 //
-// Note that if the delegate also implements help.KeyMap delegate-related
-// help items will be added to the help view.
+// 注意，如果委托还实现了 help.KeyMap 接口，与委托相关的帮助项将被添加到帮助视图中。
 type ItemDelegate interface {
-	// Render renders the item's view.
+	// Render 渲染项目的视图。
 	Render(w io.Writer, m Model, index int, item Item)
 
-	// Height is the height of the list item.
+	// Height 是列表项的高度。
 	Height() int
 
-	// Spacing is the size of the horizontal gap between list items in cells.
+	// Spacing 是列表项之间的水平间隙大小（以单元格为单位）。
 	Spacing() int
 
-	// Update is the update loop for items. All messages in the list's update
-	// loop will pass through here except when the user is setting a filter.
-	// Use this method to perform item-level updates appropriate to this
-	// delegate.
+	// Update 是项目的更新循环。列表更新循环中的所有消息都将通过这里，
+	// 除非用户正在设置过滤器。使用此方法执行适合此委托的项目级更新。
 	Update(msg tea.Msg, m *Model) tea.Cmd
 }
 
 type filteredItem struct {
-	index   int   // index in the unfiltered list
-	item    Item  // item matched
-	matches []int // rune indices of matched items
+	index   int   // 未过滤列表中的索引
+	item    Item  // 匹配的项目
+	matches []int // 匹配项目的符文索引
 }
 
 type filteredItems []filteredItem
@@ -76,25 +70,22 @@ func (f filteredItems) items() []Item {
 	return agg
 }
 
-// FilterMatchesMsg contains data about items matched during filtering. The
-// message should be routed to Update for processing.
+// FilterMatchesMsg 包含过滤期间匹配项的数据。该消息应路由到 Update 进行处理。
 type FilterMatchesMsg []filteredItem
 
-// FilterFunc takes a term and a list of strings to search through
-// (defined by Item#FilterValue).
-// It should return a sorted list of ranks.
+// FilterFunc 接受一个术语和一个要搜索的字符串列表（由 Item#FilterValue 定义）。
+// 它应返回一个排序后的排名列表。
 type FilterFunc func(string, []string) []Rank
 
-// Rank defines a rank for a given item.
+// Rank 定义给定项目的排名。
 type Rank struct {
-	// The index of the item in the original input.
+	// 项目在原始输入中的索引。
 	Index int
-	// Indices of the actual word that were matched against the filter term.
+	// 与过滤术语匹配的实际单词的索引。
 	MatchedIndexes []int
 }
 
-// DefaultFilter uses the sahilm/fuzzy to filter through the list.
-// This is set by default.
+// DefaultFilter 使用 sahilm/fuzzy 来过滤列表。这是默认设置。
 func DefaultFilter(term string, targets []string) []Rank {
 	ranks := fuzzy.Find(term, targets)
 	sort.Stable(ranks)
@@ -108,8 +99,7 @@ func DefaultFilter(term string, targets []string) []Rank {
 	return result
 }
 
-// UnsortedFilter uses the sahilm/fuzzy to filter through the list. It does not
-// sort the results.
+// UnsortedFilter 使用 sahilm/fuzzy 来过滤列表。它不对结果进行排序。
 func UnsortedFilter(term string, targets []string) []Rank {
 	ranks := fuzzy.FindNoSort(term, targets)
 	result := make([]Rank, len(ranks))
@@ -124,17 +114,17 @@ func UnsortedFilter(term string, targets []string) []Rank {
 
 type statusMessageTimeoutMsg struct{}
 
-// FilterState describes the current filtering state on the model.
+// FilterState 描述模型上的当前过滤状态。
 type FilterState int
 
-// Possible filter states.
+// 可能的过滤状态。
 const (
-	Unfiltered    FilterState = iota // no filter set
-	Filtering                        // user is actively setting a filter
-	FilterApplied                    // a filter is applied and user is not editing filter
+	Unfiltered    FilterState = iota // 未设置过滤器
+	Filtering                        // 用户正在积极设置过滤器
+	FilterApplied                    // 应用了过滤器且用户未编辑过滤器
 )
 
-// String returns a human-readable string of the current filter state.
+// String 返回当前过滤状态的人类可读字符串。
 func (f FilterState) String() string {
 	return [...]string{
 		"unfiltered",
@@ -143,7 +133,7 @@ func (f FilterState) String() string {
 	}[f]
 }
 
-// Model contains the state of this component.
+// Model 包含此组件的状态。
 type Model struct {
 	showTitle        bool
 	showFilter       bool
@@ -159,19 +149,17 @@ type Model struct {
 	Styles            Styles
 	InfiniteScrolling bool
 
-	// Key mappings for navigating the list.
+	// 用于导航列表的按键映射。
 	KeyMap KeyMap
 
-	// Filter is used to filter the list.
+	// Filter 用于过滤列表。
 	Filter FilterFunc
 
 	disableQuitKeybindings bool
 
-	// Additional key mappings for the short and full help views. This allows
-	// you to add additional key mappings to the help menu without
-	// re-implementing the help component. Of course, you can also disable the
-	// list's help component and implement a new one if you need more
-	// flexibility.
+	// 简短和完整帮助视图的附加按键映射。这允许您在不重新实现帮助组件的情况下
+	// 向帮助菜单添加附加按键映射。当然，如果您需要更多灵活性，
+	// 也可以禁用列表的帮助组件并实现一个新的。
 	AdditionalShortHelpKeys func() []key.Binding
 	AdditionalFullHelpKeys  func() []key.Binding
 
@@ -185,32 +173,32 @@ type Model struct {
 	FilterInput textinput.Model
 	filterState FilterState
 
-	// How long status messages should stay visible. By default this is
-	// 1 second.
+	// 状态消息应保持可见的时间。默认情况下为 1 秒。
 	StatusMessageLifetime time.Duration
 
 	statusMessage      string
 	statusMessageTimer *time.Timer
 
-	// The master set of items we're working with.
+	// 我们正在处理的项目主集。
 	items []Item
 
-	// Filtered items we're currently displaying. Filtering, toggles and so on
-	// will alter this slice so we can show what is relevant. For that reason,
-	// this field should be considered ephemeral.
+	// 我们当前显示的过滤项目。过滤、切换等将更改此切片，
+	// 以便我们可以显示相关内容。因此，此字段应被视为临时的。
 	filteredItems filteredItems
 
 	delegate ItemDelegate
 }
 
-// New returns a new model with sensible defaults.
+// New 返回一个具有合理默认值的新模型。
 func New(items []Item, delegate ItemDelegate, width, height int) Model {
 	styles := DefaultStyles()
 
+	// 创建一个新的 spinner 模型
 	sp := spinner.New()
 	sp.Spinner = spinner.Line
 	sp.Style = styles.Spinner
 
+	// 创建一个新的文本输入模型用于过滤
 	filterInput := textinput.New()
 	filterInput.Prompt = "Filter: "
 	filterInput.PromptStyle = styles.FilterPrompt
@@ -218,11 +206,13 @@ func New(items []Item, delegate ItemDelegate, width, height int) Model {
 	filterInput.CharLimit = 64
 	filterInput.Focus()
 
+	// 创建一个新的分页器模型
 	p := paginator.New()
 	p.Type = paginator.Dots
 	p.ActiveDot = styles.ActivePaginationDot.String()
 	p.InactiveDot = styles.InactivePaginationDot.String()
 
+	// 创建并返回新的列表模型
 	m := Model{
 		showTitle:             true,
 		showFilter:            true,
@@ -248,6 +238,7 @@ func New(items []Item, delegate ItemDelegate, width, height int) Model {
 		Help:      help.New(),
 	}
 
+	// 更新分页和按键绑定
 	m.updatePagination()
 	m.updateKeybindings()
 	return m
@@ -258,8 +249,8 @@ func New(items []Item, delegate ItemDelegate, width, height int) Model {
 // Deprecated: use [New] instead.
 var NewModel = New
 
-// SetFilteringEnabled enables or disables filtering. Note that this is different
-// from ShowFilter, which merely hides or shows the input view.
+// SetFilteringEnabled 启用或禁用过滤。注意这与 ShowFilter 不同，
+// ShowFilter 仅仅隐藏或显示输入视图。
 func (m *Model) SetFilteringEnabled(v bool) {
 	m.filteringEnabled = v
 	if !v {
@@ -268,20 +259,20 @@ func (m *Model) SetFilteringEnabled(v bool) {
 	m.updateKeybindings()
 }
 
-// FilteringEnabled returns whether or not filtering is enabled.
+// FilteringEnabled 返回是否启用了过滤。
 func (m Model) FilteringEnabled() bool {
 	return m.filteringEnabled
 }
 
-// SetShowTitle shows or hides the title bar.
+// SetShowTitle 显示或隐藏标题栏。
 func (m *Model) SetShowTitle(v bool) {
 	m.showTitle = v
 	m.updatePagination()
 }
 
-// SetFilterText explicitly sets the filter text without relying on user input.
-// It also sets the filterState to a sane default of FilterApplied, but this
-// can be changed with SetFilterState.
+// SetFilterText 显式设置过滤文本而不依赖用户输入。
+// 它还将 filterState 设置为合理的默认值 FilterApplied，但这
+// 可以通过 SetFilterState 更改。
 func (m *Model) SetFilterText(filter string) {
 	m.filterState = Filtering
 	m.FilterInput.SetValue(filter)
@@ -296,7 +287,7 @@ func (m *Model) SetFilterText(filter string) {
 	m.updateKeybindings()
 }
 
-// SetFilterState allows setting the filtering state manually.
+// SetFilterState 允许手动设置过滤状态。
 func (m *Model) SetFilterState(state FilterState) {
 	m.GoToStart()
 	m.filterState = state
@@ -305,87 +296,84 @@ func (m *Model) SetFilterState(state FilterState) {
 	m.updateKeybindings()
 }
 
-// ShowTitle returns whether or not the title bar is set to be rendered.
+// ShowTitle 返回标题栏是否设置为渲染。
 func (m Model) ShowTitle() bool {
 	return m.showTitle
 }
 
-// SetShowFilter shows or hides the filter bar. Note that this does not disable
-// filtering, it simply hides the built-in filter view. This allows you to
-// use the FilterInput to render the filtering UI differently without having to
-// re-implement filtering from scratch.
+// SetShowFilter 显示或隐藏过滤栏。注意这不会禁用过滤，
+// 它只是隐藏内置的过滤视图。这允许您使用 FilterInput 以不同的方式
+// 渲染过滤 UI，而无需从头重新实现过滤。
 //
-// To disable filtering entirely use EnableFiltering.
+// 要完全禁用过滤，请使用 EnableFiltering。
 func (m *Model) SetShowFilter(v bool) {
 	m.showFilter = v
 	m.updatePagination()
 }
 
-// ShowFilter returns whether or not the filter is set to be rendered. Note
-// that this is separate from FilteringEnabled, so filtering can be hidden yet
-// still invoked. This allows you to render filtering differently without
-// having to re-implement it from scratch.
+// ShowFilter 返回过滤器是否设置为渲染。注意这与 FilteringEnabled 是分开的，
+// 因此过滤可以被隐藏但仍然可以调用。这允许您以不同的方式渲染过滤，
+// 而无需从头重新实现它。
 func (m Model) ShowFilter() bool {
 	return m.showFilter
 }
 
-// SetShowStatusBar shows or hides the view that displays metadata about the
-// list, such as item counts.
+// SetShowStatusBar 显示或隐藏显示列表元数据的视图，例如项目计数。
 func (m *Model) SetShowStatusBar(v bool) {
 	m.showStatusBar = v
 	m.updatePagination()
 }
 
-// ShowStatusBar returns whether or not the status bar is set to be rendered.
+// ShowStatusBar 返回状态栏是否设置为渲染。
 func (m Model) ShowStatusBar() bool {
 	return m.showStatusBar
 }
 
-// SetStatusBarItemName defines a replacement for the item's identifier.
-// Defaults to item/items.
+// SetStatusBarItemName 定义项目标识符的替换。默认为 item/items。
 func (m *Model) SetStatusBarItemName(singular, plural string) {
 	m.itemNameSingular = singular
 	m.itemNamePlural = plural
 }
 
-// StatusBarItemName returns singular and plural status bar item names.
+// StatusBarItemName 返回单数和复数状态栏项目名称。
 func (m Model) StatusBarItemName() (string, string) {
 	return m.itemNameSingular, m.itemNamePlural
 }
 
-// SetShowPagination hides or shows the paginator. Note that pagination will
-// still be active, it simply won't be displayed.
+// SetShowPagination 隐藏或显示分页器。注意分页仍然会活动，
+// 只是不会显示。
 func (m *Model) SetShowPagination(v bool) {
 	m.showPagination = v
 	m.updatePagination()
 }
 
-// ShowPagination returns whether the pagination is visible.
+// ShowPagination 返回分页是否可见。
 func (m *Model) ShowPagination() bool {
 	return m.showPagination
 }
 
-// SetShowHelp shows or hides the help view.
+// SetShowHelp 显示或隐藏帮助视图。
 func (m *Model) SetShowHelp(v bool) {
 	m.showHelp = v
 	m.updatePagination()
 }
 
-// ShowHelp returns whether or not the help is set to be rendered.
+// ShowHelp 返回帮助是否设置为渲染。
 func (m Model) ShowHelp() bool {
 	return m.showHelp
 }
 
-// Items returns the items in the list.
+// Items 返回列表中的项目。
 func (m Model) Items() []Item {
 	return m.items
 }
 
-// SetItems sets the items available in the list. This returns a command.
+// SetItems 设置列表中可用的项目。这返回一个命令。
 func (m *Model) SetItems(i []Item) tea.Cmd {
 	var cmd tea.Cmd
 	m.items = i
 
+	// 如果当前处于过滤状态，则重新过滤项目
 	if m.filterState != Unfiltered {
 		m.filteredItems = nil
 		cmd = filterItems(*m)
@@ -396,27 +384,28 @@ func (m *Model) SetItems(i []Item) tea.Cmd {
 	return cmd
 }
 
-// Select selects the given index of the list and goes to its respective page.
+// Select 选择列表的给定索引并转到其相应的页面。
 func (m *Model) Select(index int) {
 	m.Paginator.Page = index / m.Paginator.PerPage
 	m.cursor = index % m.Paginator.PerPage
 }
 
-// ResetSelected resets the selected item to the first item in the first page of the list.
+// ResetSelected 将选定的项目重置为列表第一页的第一个项目。
 func (m *Model) ResetSelected() {
 	m.Select(0)
 }
 
-// ResetFilter resets the current filtering state.
+// ResetFilter 重置当前过滤状态。
 func (m *Model) ResetFilter() {
 	m.resetFiltering()
 }
 
-// SetItem replaces an item at the given index. This returns a command.
+// SetItem 替换给定索引处的项目。这返回一个命令。
 func (m *Model) SetItem(index int, item Item) tea.Cmd {
 	var cmd tea.Cmd
 	m.items[index] = item
 
+	// 如果当前处于过滤状态，则重新过滤项目
 	if m.filterState != Unfiltered {
 		cmd = filterItems(*m)
 	}
@@ -425,12 +414,13 @@ func (m *Model) SetItem(index int, item Item) tea.Cmd {
 	return cmd
 }
 
-// InsertItem inserts an item at the given index. If the index is out of the upper bound,
-// the item will be appended. This returns a command.
+// InsertItem 在给定索引处插入一个项目。如果索引超出上界，
+// 项目将被追加。这返回一个命令。
 func (m *Model) InsertItem(index int, item Item) tea.Cmd {
 	var cmd tea.Cmd
 	m.items = insertItemIntoSlice(m.items, item, index)
 
+	// 如果当前处于过滤状态，则重新过滤项目
 	if m.filterState != Unfiltered {
 		cmd = filterItems(*m)
 	}
@@ -440,11 +430,11 @@ func (m *Model) InsertItem(index int, item Item) tea.Cmd {
 	return cmd
 }
 
-// RemoveItem removes an item at the given index. If the index is out of bounds
-// this will be a no-op. O(n) complexity, which probably won't matter in the
-// case of a TUI.
+// RemoveItem 移除给定索引处的项目。如果索引超出范围，
+// 这将是空操作。O(n) 复杂度，在 TUI 的情况下可能不会成为问题。
 func (m *Model) RemoveItem(index int) {
 	m.items = removeItemFromSlice(m.items, index)
+	// 如果当前处于过滤状态，则从过滤结果中移除该项目
 	if m.filterState != Unfiltered {
 		m.filteredItems = removeFilterMatchFromSlice(m.filteredItems, index)
 		if len(m.filteredItems) == 0 {
@@ -454,13 +444,13 @@ func (m *Model) RemoveItem(index int) {
 	m.updatePagination()
 }
 
-// SetDelegate sets the item delegate.
+// SetDelegate 设置项目委托。
 func (m *Model) SetDelegate(d ItemDelegate) {
 	m.delegate = d
 	m.updatePagination()
 }
 
-// VisibleItems returns the total items available to be shown.
+// VisibleItems 返回可显示的总项目数。
 func (m Model) VisibleItems() []Item {
 	if m.filterState != Unfiltered {
 		return m.filteredItems.items()
@@ -468,7 +458,7 @@ func (m Model) VisibleItems() []Item {
 	return m.items
 }
 
-// SelectedItem returns the current selected item in the list.
+// SelectedItem 返回列表中当前选定的项目。
 func (m Model) SelectedItem() Item {
 	i := m.Index()
 
@@ -480,10 +470,10 @@ func (m Model) SelectedItem() Item {
 	return items[i]
 }
 
-// MatchesForItem returns rune positions matched by the current filter, if any.
-// Use this to style runes matched by the active filter.
+// MatchesForItem 返回由当前过滤器匹配的符文位置（如果有）。
+// 使用此方法来设置由活动过滤器匹配的符文的样式。
 //
-// See DefaultItemView for a usage example.
+// 请参阅 DefaultItemView 以获取使用示例。
 func (m Model) MatchesForItem(index int) []int {
 	if m.filteredItems == nil || index >= len(m.filteredItems) {
 		return nil
@@ -491,16 +481,16 @@ func (m Model) MatchesForItem(index int) []int {
 	return m.filteredItems[index].matches
 }
 
-// Index returns the index of the currently selected item as it is stored in the
-// filtered list of items.
-// Using this value with SetItem() might be incorrect, consider using
-// GlobalIndex() instead.
+// Index 返回当前选定项目的索引，因为它存储在
+// 过滤的项目列表中。
+// 将此值与 SetItem() 一起使用可能不正确，请考虑使用
+// GlobalIndex() 代替。
 func (m Model) Index() int {
 	return m.Paginator.Page*m.Paginator.PerPage + m.cursor
 }
 
-// GlobalIndex returns the index of the currently selected item as it is stored
-// in the unfiltered list of items. This value can be used with SetItem().
+// GlobalIndex 返回当前选定项目的索引，因为它存储在
+// 未过滤的项目列表中。此值可以与 SetItem() 一起使用。
 func (m Model) GlobalIndex() int {
 	index := m.Index()
 
@@ -511,19 +501,18 @@ func (m Model) GlobalIndex() int {
 	return m.filteredItems[index].index
 }
 
-// Cursor returns the index of the cursor on the current page.
+// Cursor 返回当前页面上光标的索引。
 func (m Model) Cursor() int {
 	return m.cursor
 }
 
-// CursorUp moves the cursor up. This can also move the state to the previous
-// page.
+// CursorUp 向上移动光标。这也可以将状态移动到上一页。
 func (m *Model) CursorUp() {
 	m.cursor--
 
-	// If we're at the start, stop
+	// 如果我们在开始处，停止
 	if m.cursor < 0 && m.Paginator.OnFirstPage() {
-		// if infinite scrolling is enabled, go to the last item
+		// 如果启用了无限滚动，则转到最后一个项目
 		if m.InfiniteScrolling {
 			m.GoToEnd()
 			return
@@ -532,29 +521,28 @@ func (m *Model) CursorUp() {
 		return
 	}
 
-	// Move the cursor as normal
+	// 正常移动光标
 	if m.cursor >= 0 {
 		return
 	}
 
-	// Go to the previous page
+	// 转到上一页
 	m.Paginator.PrevPage()
 	m.cursor = m.maxCursorIndex()
 }
 
-// CursorDown moves the cursor down. This can also advance the state to the
-// next page.
+// CursorDown 向下移动光标。这也可以将状态推进到下一页。
 func (m *Model) CursorDown() {
 	maxCursorIndex := m.maxCursorIndex()
 
 	m.cursor++
 
-	// We're still within bounds of the current page, so no need to do anything.
+	// 我们仍在当前页面的范围内，所以无需执行任何操作。
 	if m.cursor <= maxCursorIndex {
 		return
 	}
 
-	// Go to the next page
+	// 转到下一页
 	if !m.Paginator.OnLastPage() {
 		m.Paginator.NextPage()
 		m.cursor = 0
@@ -563,31 +551,31 @@ func (m *Model) CursorDown() {
 
 	m.cursor = max(0, maxCursorIndex)
 
-	// if infinite scrolling is enabled, go to the first item.
+	// 如果启用了无限滚动，则转到第一个项目。
 	if m.InfiniteScrolling {
 		m.GoToStart()
 	}
 }
 
-// GoToStart moves to the first page, and first item on the first page.
+// GoToStart 移动到第一页，以及第一页上的第一个项目。
 func (m *Model) GoToStart() {
 	m.Paginator.Page = 0
 	m.cursor = 0
 }
 
-// GoToEnd moves to the last page, and last item on the last page.
+// GoToEnd 移动到最后一页，以及最后一页上的最后一个项目。
 func (m *Model) GoToEnd() {
 	m.Paginator.Page = max(0, m.Paginator.TotalPages-1)
 	m.cursor = m.maxCursorIndex()
 }
 
-// PrevPage moves to the previous page, if available.
+// PrevPage 移动到上一页（如果可用）。
 func (m *Model) PrevPage() {
 	m.Paginator.PrevPage()
 	m.cursor = clamp(m.cursor, 0, m.maxCursorIndex())
 }
 
-// NextPage moves to the next page, if available.
+// NextPage 移动到下一页（如果可用）。
 func (m *Model) NextPage() {
 	m.Paginator.NextPage()
 	m.cursor = clamp(m.cursor, 0, m.maxCursorIndex())
@@ -597,51 +585,50 @@ func (m *Model) maxCursorIndex() int {
 	return max(0, m.Paginator.ItemsOnPage(len(m.VisibleItems()))-1)
 }
 
-// FilterState returns the current filter state.
+// FilterState 返回当前过滤状态。
 func (m Model) FilterState() FilterState {
 	return m.filterState
 }
 
-// FilterValue returns the current value of the filter.
+// FilterValue 返回过滤器的当前值。
 func (m Model) FilterValue() string {
 	return m.FilterInput.Value()
 }
 
-// SettingFilter returns whether or not the user is currently editing the
-// filter value. It's purely a convenience method for the following:
+// SettingFilter 返回用户当前是否正在编辑过滤值。
+// 这纯粹是以下内容的便捷方法：
 //
 //	m.FilterState() == Filtering
 //
-// It's included here because it's a common thing to check for when
-// implementing this component.
+// 包含在这里是因为在实现此组件时这是一个常见的检查项。
 func (m Model) SettingFilter() bool {
 	return m.filterState == Filtering
 }
 
-// IsFiltered returns whether or not the list is currently filtered.
-// It's purely a convenience method for the following:
+// IsFiltered 返回列表当前是否已过滤。
+// 这纯粹是以下内容的便捷方法：
 //
 //	m.FilterState() == FilterApplied
 func (m Model) IsFiltered() bool {
 	return m.filterState == FilterApplied
 }
 
-// Width returns the current width setting.
+// Width 返回当前宽度设置。
 func (m Model) Width() int {
 	return m.width
 }
 
-// Height returns the current height setting.
+// Height 返回当前高度设置。
 func (m Model) Height() int {
 	return m.height
 }
 
-// SetSpinner allows to set the spinner style.
+// SetSpinner 允许设置 spinner 样式。
 func (m *Model) SetSpinner(spinner spinner.Spinner) {
 	m.spinner.Spinner = spinner
 }
 
-// ToggleSpinner toggles the spinner. Note that this also returns a command.
+// ToggleSpinner 切换 spinner。注意这也返回一个命令。
 func (m *Model) ToggleSpinner() tea.Cmd {
 	if !m.showSpinner {
 		return m.StartSpinner()
@@ -650,27 +637,27 @@ func (m *Model) ToggleSpinner() tea.Cmd {
 	return nil
 }
 
-// StartSpinner starts the spinner. Note that this returns a command.
+// StartSpinner 启动 spinner。注意这也返回一个命令。
 func (m *Model) StartSpinner() tea.Cmd {
 	m.showSpinner = true
 	return m.spinner.Tick
 }
 
-// StopSpinner stops the spinner.
+// StopSpinner 停止 spinner。
 func (m *Model) StopSpinner() {
 	m.showSpinner = false
 }
 
-// DisableQuitKeybindings is a helper for disabling the keybindings used for quitting,
-// in case you want to handle this elsewhere in your application.
+// DisableQuitKeybindings 是一个辅助函数，用于禁用用于退出的按键绑定，
+// 以防您想在应用程序的其他地方处理此操作。
 func (m *Model) DisableQuitKeybindings() {
 	m.disableQuitKeybindings = true
 	m.KeyMap.Quit.SetEnabled(false)
 	m.KeyMap.ForceQuit.SetEnabled(false)
 }
 
-// NewStatusMessage sets a new status message, which will show for a limited
-// amount of time. Note that this also returns a command.
+// NewStatusMessage 设置一个新的状态消息，该消息将显示有限的时间。
+// 注意这也返回一个命令。
 func (m *Model) NewStatusMessage(s string) tea.Cmd {
 	m.statusMessage = s
 	if m.statusMessageTimer != nil {
@@ -679,24 +666,24 @@ func (m *Model) NewStatusMessage(s string) tea.Cmd {
 
 	m.statusMessageTimer = time.NewTimer(m.StatusMessageLifetime)
 
-	// Wait for timeout
+	// 等待超时
 	return func() tea.Msg {
 		<-m.statusMessageTimer.C
 		return statusMessageTimeoutMsg{}
 	}
 }
 
-// SetWidth sets the width of this component.
+// SetWidth 设置此组件的宽度。
 func (m *Model) SetWidth(v int) {
 	m.SetSize(v, m.height)
 }
 
-// SetHeight sets the height of this component.
+// SetHeight 设置此组件的高度。
 func (m *Model) SetHeight(v int) {
 	m.SetSize(m.width, v)
 }
 
-// SetSize sets the width and height of this component.
+// SetSize 设置此组件的宽度和高度。
 func (m *Model) SetSize(width, height int) {
 	promptWidth := lipgloss.Width(m.Styles.Title.Render(m.FilterInput.Prompt))
 
@@ -730,10 +717,11 @@ func (m Model) itemsAsFilterItems() filteredItems {
 	return fi
 }
 
-// Set keybindings according to the filter state.
+// 根据过滤状态设置按键绑定。
 func (m *Model) updateKeybindings() {
 	switch m.filterState { //nolint:exhaustive
 	case Filtering:
+		// 在过滤状态下禁用导航按键
 		m.KeyMap.CursorUp.SetEnabled(false)
 		m.KeyMap.CursorDown.SetEnabled(false)
 		m.KeyMap.NextPage.SetEnabled(false)
@@ -749,6 +737,7 @@ func (m *Model) updateKeybindings() {
 		m.KeyMap.CloseFullHelp.SetEnabled(false)
 
 	default:
+		// 默认状态下的按键绑定
 		hasItems := len(m.items) != 0
 		m.KeyMap.CursorUp.SetEnabled(hasItems)
 		m.KeyMap.CursorDown.SetEnabled(hasItems)
@@ -777,37 +766,43 @@ func (m *Model) updateKeybindings() {
 	}
 }
 
-// Update pagination according to the amount of items for the current state.
+// 根据当前状态的项目数量更新分页。
 func (m *Model) updatePagination() {
 	index := m.Index()
 	availHeight := m.height
 
+	// 减去标题栏的高度
 	if m.showTitle || (m.showFilter && m.filteringEnabled) {
 		availHeight -= lipgloss.Height(m.titleView())
 	}
+	// 减去状态栏的高度
 	if m.showStatusBar {
 		availHeight -= lipgloss.Height(m.statusView())
 	}
+	// 减去分页器的高度
 	if m.showPagination {
 		availHeight -= lipgloss.Height(m.paginationView())
 	}
+	// 减去帮助视图的高度
 	if m.showHelp {
 		availHeight -= lipgloss.Height(m.helpView())
 	}
 
+	// 计算每页可以显示的项目数量
 	m.Paginator.PerPage = max(1, availHeight/(m.delegate.Height()+m.delegate.Spacing()))
 
+	// 设置总页数
 	if pages := len(m.VisibleItems()); pages < 1 {
 		m.Paginator.SetTotalPages(1)
 	} else {
 		m.Paginator.SetTotalPages(pages)
 	}
 
-	// Restore index
+	// 恢复索引
 	m.Paginator.Page = index / m.Paginator.PerPage
 	m.cursor = index % m.Paginator.PerPage
 
-	// Make sure the page stays in bounds
+	// 确保页面保持在范围内
 	if m.Paginator.Page >= m.Paginator.TotalPages-1 {
 		m.Paginator.Page = max(0, m.Paginator.TotalPages-1)
 	}
@@ -820,21 +815,24 @@ func (m *Model) hideStatusMessage() {
 	}
 }
 
-// Update is the Bubble Tea update loop.
+// Update 是 Bubble Tea 更新循环。
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// 处理强制退出按键
 		if key.Matches(msg, m.KeyMap.ForceQuit) {
 			return m, tea.Quit
 		}
 
 	case FilterMatchesMsg:
+		// 处理过滤匹配消息
 		m.filteredItems = filteredItems(msg)
 		return m, nil
 
 	case spinner.TickMsg:
+		// 处理 spinner 滴答消息
 		newSpinnerModel, cmd := m.spinner.Update(msg)
 		m.spinner = newSpinnerModel
 		if m.showSpinner {
@@ -842,9 +840,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 	case statusMessageTimeoutMsg:
+		// 处理状态消息超时
 		m.hideStatusMessage()
 	}
 
+	// 根据过滤状态处理消息
 	if m.filterState == Filtering {
 		cmds = append(cmds, m.handleFiltering(msg))
 	} else {
@@ -854,15 +854,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// Updates for when a user is browsing the list.
+// 当用户浏览列表时的更新。
 func (m *Model) handleBrowsing(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		// Note: we match clear filter before quit because, by default, they're
-		// both mapped to escape.
+		// 注意：我们在退出之前匹配清除过滤器，因为默认情况下，
+		// 它们都映射到 escape。
 		case key.Matches(msg, m.KeyMap.ClearFilter):
 			m.resetFiltering()
 
@@ -889,8 +889,8 @@ func (m *Model) handleBrowsing(msg tea.Msg) tea.Cmd {
 
 		case key.Matches(msg, m.KeyMap.Filter):
 			m.hideStatusMessage()
+			// 仅当过滤器为空时，才用所有项目填充过滤器。
 			if m.FilterInput.Value() == "" {
-				// Populate filter with all items only if the filter is empty.
 				m.filteredItems = m.itemsAsFilterItems()
 			}
 			m.GoToStart()
@@ -908,19 +908,21 @@ func (m *Model) handleBrowsing(msg tea.Msg) tea.Cmd {
 		}
 	}
 
+	// 调用委托的更新方法
 	cmd := m.delegate.Update(msg, m)
 	cmds = append(cmds, cmd)
 
+	// 确保光标在有效范围内
 	m.cursor = clamp(m.cursor, 0, m.maxCursorIndex())
 
 	return tea.Batch(cmds...)
 }
 
-// Updates for when a user is in the filter editing interface.
+// 当用户在过滤编辑界面中时的更新。
 func (m *Model) handleFiltering(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 
-	// Handle keys
+	// 处理按键
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch {
 		case key.Matches(msg, m.KeyMap.CancelWhileFiltering):
@@ -937,7 +939,7 @@ func (m *Model) handleFiltering(msg tea.Msg) tea.Cmd {
 
 			h := m.VisibleItems()
 
-			// If we've filtered down to nothing, clear the filter
+			// 如果我们过滤后什么都没有，则清除过滤器
 			if len(h) == 0 {
 				m.resetFiltering()
 				break
@@ -953,26 +955,26 @@ func (m *Model) handleFiltering(msg tea.Msg) tea.Cmd {
 		}
 	}
 
-	// Update the filter text input component
+	// 更新过滤文本输入组件
 	newFilterInputModel, inputCmd := m.FilterInput.Update(msg)
 	filterChanged := m.FilterInput.Value() != newFilterInputModel.Value()
 	m.FilterInput = newFilterInputModel
 	cmds = append(cmds, inputCmd)
 
-	// If the filtering input has changed, request updated filtering
+	// 如果过滤输入已更改，则请求更新的过滤
 	if filterChanged {
 		cmds = append(cmds, filterItems(*m))
 		m.KeyMap.AcceptWhileFiltering.SetEnabled(m.FilterInput.Value() != "")
 	}
 
-	// Update pagination
+	// 更新分页
 	m.updatePagination()
 
 	return tea.Batch(cmds...)
 }
 
-// ShortHelp returns bindings to show in the abbreviated help view. It's part
-// of the help.KeyMap interface.
+// ShortHelp 返回要在缩略帮助视图中显示的绑定。这是
+// help.KeyMap 接口的一部分。
 func (m Model) ShortHelp() []key.Binding {
 	kb := []key.Binding{
 		m.KeyMap.CursorUp,
@@ -981,8 +983,8 @@ func (m Model) ShortHelp() []key.Binding {
 
 	filtering := m.filterState == Filtering
 
-	// If the delegate implements the help.KeyMap interface add the short help
-	// items to the short help after the cursor movement keys.
+	// 如果委托实现了 help.KeyMap 接口，则将简短帮助项
+	// 添加到光标移动键之后的简短帮助中。
 	if !filtering {
 		if b, ok := m.delegate.(help.KeyMap); ok {
 			kb = append(kb, b.ShortHelp()...)
@@ -1006,8 +1008,8 @@ func (m Model) ShortHelp() []key.Binding {
 	)
 }
 
-// FullHelp returns bindings to show the full help view. It's part of the
-// help.KeyMap interface.
+// FullHelp 返回要显示完整帮助视图的绑定。这是
+// help.KeyMap 接口的一部分。
 func (m Model) FullHelp() [][]key.Binding {
 	kb := [][]key.Binding{{
 		m.KeyMap.CursorUp,
@@ -1020,8 +1022,8 @@ func (m Model) FullHelp() [][]key.Binding {
 
 	filtering := m.filterState == Filtering
 
-	// If the delegate implements the help.KeyMap interface add full help
-	// keybindings to a special section of the full help.
+	// 如果委托实现了 help.KeyMap 接口，则将完整帮助按键绑定
+	// 添加到完整帮助的特殊部分。
 	if !filtering {
 		if b, ok := m.delegate.(help.KeyMap); ok {
 			kb = append(kb, b.FullHelp()...)
@@ -1047,19 +1049,21 @@ func (m Model) FullHelp() [][]key.Binding {
 		})
 }
 
-// View renders the component.
+// View 渲染组件。
 func (m Model) View() string {
 	var (
 		sections    []string
 		availHeight = m.height
 	)
 
+	// 渲染标题栏或过滤器
 	if m.showTitle || (m.showFilter && m.filteringEnabled) {
 		v := m.titleView()
 		sections = append(sections, v)
 		availHeight -= lipgloss.Height(v)
 	}
 
+	// 渲染状态栏
 	if m.showStatusBar {
 		v := m.statusView()
 		sections = append(sections, v)
@@ -1067,24 +1071,29 @@ func (m Model) View() string {
 	}
 
 	var pagination string
+	// 渲染分页器
 	if m.showPagination {
 		pagination = m.paginationView()
 		availHeight -= lipgloss.Height(pagination)
 	}
 
 	var help string
+	// 渲染帮助视图
 	if m.showHelp {
 		help = m.helpView()
 		availHeight -= lipgloss.Height(help)
 	}
 
+	// 渲染主要内容
 	content := lipgloss.NewStyle().Height(availHeight).Render(m.populatedView())
 	sections = append(sections, content)
 
+	// 添加分页器
 	if m.showPagination {
 		sections = append(sections, pagination)
 	}
 
+	// 添加帮助视图
 	if m.showHelp {
 		sections = append(sections, help)
 	}
@@ -1097,15 +1106,15 @@ func (m Model) titleView() string {
 		view          string
 		titleBarStyle = m.Styles.TitleBar
 
-		// We need to account for the size of the spinner, even if we don't
-		// render it, to reserve some space for it should we turn it on later.
+		// 我们需要考虑 spinner 的大小，即使我们不渲染它，
+		// 也要为它预留一些空间，以防我们稍后打开它。
 		spinnerView    = m.spinnerView()
 		spinnerWidth   = lipgloss.Width(spinnerView)
 		spinnerLeftGap = " "
 		spinnerOnLeft  = titleBarStyle.GetPaddingLeft() >= spinnerWidth+lipgloss.Width(spinnerLeftGap) && m.showSpinner
 	)
 
-	// If the filter's showing, draw that. Otherwise draw the title.
+	// 如果过滤器正在显示，则绘制它。否则绘制标题。
 	if m.showFilter && m.filterState == Filtering {
 		view += m.FilterInput.View()
 	} else if m.showTitle {
@@ -1117,7 +1126,7 @@ func (m Model) titleView() string {
 
 		view += m.Styles.Title.Render(m.Title)
 
-		// Status message
+		// 状态消息
 		if m.filterState != Filtering {
 			view += "  " + m.statusMessage
 			view = ansi.Truncate(view, m.width-spinnerWidth, ellipsis)
@@ -1126,7 +1135,7 @@ func (m Model) titleView() string {
 
 	// Spinner
 	if m.showSpinner && !spinnerOnLeft {
-		// Place spinner on the right
+		// 将 spinner 放在右侧
 		availSpace := m.width - lipgloss.Width(m.Styles.TitleBar.Render(view))
 		if availSpace > spinnerWidth {
 			view += strings.Repeat(" ", availSpace-spinnerWidth)
@@ -1156,17 +1165,17 @@ func (m Model) statusView() string {
 	itemsDisplay := fmt.Sprintf("%d %s", visibleItems, itemName)
 
 	if m.filterState == Filtering { //nolint:nestif
-		// Filter results
+		// 过滤结果
 		if visibleItems == 0 {
 			status = m.Styles.StatusEmpty.Render("Nothing matched")
 		} else {
 			status = itemsDisplay
 		}
 	} else if len(m.items) == 0 {
-		// Not filtering: no items.
+		// 未过滤：没有项目。
 		status = m.Styles.StatusEmpty.Render("No " + m.itemNamePlural)
 	} else {
-		// Normal
+		// 正常状态
 		filtered := m.FilterState() == FilterApplied
 
 		if filtered {
@@ -1194,8 +1203,8 @@ func (m Model) paginationView() string {
 
 	s := m.Paginator.View()
 
-	// If the dot pagination is wider than the width of the window
-	// use the arabic paginator.
+	// 如果点分页比窗口宽度宽，
+	// 则使用阿拉伯数字分页器。
 	if ansi.StringWidth(s) > m.width {
 		m.Paginator.Type = paginator.Arabic
 		s = m.Styles.ArabicPagination.Render(m.Paginator.View())
@@ -1214,7 +1223,7 @@ func (m Model) populatedView() string {
 
 	var b strings.Builder
 
-	// Empty states
+	// 空状态
 	if len(items) == 0 {
 		if m.filterState == Filtering {
 			return ""
@@ -1234,9 +1243,8 @@ func (m Model) populatedView() string {
 		}
 	}
 
-	// If there aren't enough items to fill up this page (always the last page)
-	// then we need to add some newlines to fill up the space where items would
-	// have been.
+	// 如果没有足够的项目来填充此页面（总是最后一页），
+	// 那么我们需要添加一些换行符来填充本应有项目的空间。
 	itemsOnPage := m.Paginator.ItemsOnPage(len(items))
 	if itemsOnPage < m.Paginator.PerPage {
 		n := (m.Paginator.PerPage - itemsOnPage) * (m.delegate.Height() + m.delegate.Spacing())
@@ -1259,6 +1267,7 @@ func (m Model) spinnerView() string {
 
 func filterItems(m Model) tea.Cmd {
 	return func() tea.Msg {
+		// 如果过滤器为空或未处于过滤状态，则返回所有项目
 		if m.FilterInput.Value() == "" || m.filterState == Unfiltered {
 			return FilterMatchesMsg(m.itemsAsFilterItems()) // return nothing
 		}
@@ -1266,10 +1275,12 @@ func filterItems(m Model) tea.Cmd {
 		items := m.items
 		targets := make([]string, len(items))
 
+		// 获取所有项目的过滤值
 		for i, t := range items {
 			targets[i] = t.FilterValue()
 		}
 
+		// 使用过滤器过滤项目
 		filterMatches := []filteredItem{}
 		for _, r := range m.Filter(m.FilterInput.Value(), targets) {
 			filterMatches = append(filterMatches, filteredItem{
@@ -1299,7 +1310,7 @@ func insertItemIntoSlice(items []Item, item Item, index int) []Item {
 	return items
 }
 
-// Remove an item from a slice of items at the given index. This runs in O(n).
+// 从给定索引处的项目切片中移除一个项目。这在 O(n) 中运行。
 func removeItemFromSlice(i []Item, index int) []Item {
 	if index >= len(i) {
 		return i // noop

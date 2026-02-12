@@ -1,8 +1,8 @@
 name: dependabot-sync
 on:
   schedule:
-    - cron: "0 0 * * 0" # every Sunday at midnight
-  workflow_dispatch: # allows manual triggering
+    - cron: "0 0 * * 0" # 每周日午夜
+  workflow_dispatch: # 允许手动触发
 
 permissions:
   contents: write
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   dependabot-sync:
-    uses: charmbracelet/meta/.github/workflows/dependabot-sync.yml@main
+    uses: purpose168/meta-cn/.github/workflows/dependabot-sync.yml@main
     with:
       repo_name: ${{ github.event.repository.name }}
     secrets:

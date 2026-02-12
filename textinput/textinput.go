@@ -1,5 +1,4 @@
-// Package textinput provides a text input component for Bubble Tea
-// applications.
+// Package textinput 为Bubble Tea应用程序提供文本输入组件
 package textinput
 
 import (
@@ -9,170 +8,166 @@ import (
 	"unicode"
 
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/cursor"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/runeutil"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 	rw "github.com/mattn/go-runewidth"
+	"github.com/purpose168/bubbles-cn/cursor"
+	"github.com/purpose168/bubbles-cn/key"
+	"github.com/purpose168/bubbles-cn/runeutil"
+	tea "github.com/purpose168/bubbletea-cn"
+	"github.com/purpose168/charm-experimental-packages-cn/ansi"
+	lipgloss "github.com/purpose168/lipgloss-cn"
 	"github.com/rivo/uniseg"
 )
 
-// Internal messages for clipboard operations.
+// 剪贴板操作的内部消息类型
 type (
-	pasteMsg    string
-	pasteErrMsg struct{ error }
+	pasteMsg    string          // 粘贴成功的消息
+	pasteErrMsg struct{ error } // 粘贴失败的消息
 )
 
-// EchoMode sets the input behavior of the text input field.
+// EchoMode 设置文本输入字段的输入行为
 type EchoMode int
 
 const (
-	// EchoNormal displays text as is. This is the default behavior.
+	// EchoNormal 按原样显示文本。这是默认行为。
 	EchoNormal EchoMode = iota
 
-	// EchoPassword displays the EchoCharacter mask instead of actual
-	// characters. This is commonly used for password fields.
+	// EchoPassword 显示EchoCharacter掩码而不是实际字符。
+	// 这通常用于密码字段。
 	EchoPassword
 
-	// EchoNone displays nothing as characters are entered. This is commonly
-	// seen for password fields on the command line.
+	// EchoNone 在输入字符时不显示任何内容。
+	// 这通常在命令行的密码字段中看到。
 	EchoNone
 )
 
-// ValidateFunc is a function that returns an error if the input is invalid.
+// ValidateFunc 是一个函数，如果输入无效则返回错误
 type ValidateFunc func(string) error
 
-// KeyMap is the key bindings for different actions within the textinput.
+// KeyMap 是文本输入框内不同操作的键绑定
 type KeyMap struct {
-	CharacterForward        key.Binding
-	CharacterBackward       key.Binding
-	WordForward             key.Binding
-	WordBackward            key.Binding
-	DeleteWordBackward      key.Binding
-	DeleteWordForward       key.Binding
-	DeleteAfterCursor       key.Binding
-	DeleteBeforeCursor      key.Binding
-	DeleteCharacterBackward key.Binding
-	DeleteCharacterForward  key.Binding
-	LineStart               key.Binding
-	LineEnd                 key.Binding
-	Paste                   key.Binding
-	AcceptSuggestion        key.Binding
-	NextSuggestion          key.Binding
-	PrevSuggestion          key.Binding
+	CharacterForward        key.Binding // 向前移动一个字符
+	CharacterBackward       key.Binding // 向后移动一个字符
+	WordForward             key.Binding // 向前移动一个单词
+	WordBackward            key.Binding // 向后移动一个单词
+	DeleteWordBackward      key.Binding // 删除光标前的一个单词
+	DeleteWordForward       key.Binding // 删除光标后的一个单词
+	DeleteAfterCursor       key.Binding // 删除光标后的所有内容
+	DeleteBeforeCursor      key.Binding // 删除光标前的所有内容
+	DeleteCharacterBackward key.Binding // 删除光标前的一个字符
+	DeleteCharacterForward  key.Binding // 删除光标后的一个字符
+	LineStart               key.Binding // 移动到行首
+	LineEnd                 key.Binding // 移动到行尾
+	Paste                   key.Binding // 粘贴
+	AcceptSuggestion        key.Binding // 接受建议
+	NextSuggestion          key.Binding // 下一个建议
+	PrevSuggestion          key.Binding // 上一个建议
 }
 
-// DefaultKeyMap is the default set of key bindings for navigating and acting
-// upon the textinput.
+// DefaultKeyMap 是默认的键绑定集合，用于导航和操作文本输入框
 var DefaultKeyMap = KeyMap{
-	CharacterForward:        key.NewBinding(key.WithKeys("right", "ctrl+f")),
-	CharacterBackward:       key.NewBinding(key.WithKeys("left", "ctrl+b")),
-	WordForward:             key.NewBinding(key.WithKeys("alt+right", "ctrl+right", "alt+f")),
-	WordBackward:            key.NewBinding(key.WithKeys("alt+left", "ctrl+left", "alt+b")),
-	DeleteWordBackward:      key.NewBinding(key.WithKeys("alt+backspace", "ctrl+w")),
-	DeleteWordForward:       key.NewBinding(key.WithKeys("alt+delete", "alt+d")),
-	DeleteAfterCursor:       key.NewBinding(key.WithKeys("ctrl+k")),
-	DeleteBeforeCursor:      key.NewBinding(key.WithKeys("ctrl+u")),
-	DeleteCharacterBackward: key.NewBinding(key.WithKeys("backspace", "ctrl+h")),
-	DeleteCharacterForward:  key.NewBinding(key.WithKeys("delete", "ctrl+d")),
-	LineStart:               key.NewBinding(key.WithKeys("home", "ctrl+a")),
-	LineEnd:                 key.NewBinding(key.WithKeys("end", "ctrl+e")),
-	Paste:                   key.NewBinding(key.WithKeys("ctrl+v")),
-	AcceptSuggestion:        key.NewBinding(key.WithKeys("tab")),
-	NextSuggestion:          key.NewBinding(key.WithKeys("down", "ctrl+n")),
-	PrevSuggestion:          key.NewBinding(key.WithKeys("up", "ctrl+p")),
+	CharacterForward:        key.NewBinding(key.WithKeys("right", "ctrl+f")),                  // 右箭头或Ctrl+F
+	CharacterBackward:       key.NewBinding(key.WithKeys("left", "ctrl+b")),                   // 左箭头或Ctrl+B
+	WordForward:             key.NewBinding(key.WithKeys("alt+right", "ctrl+right", "alt+f")), // Alt+右箭头或Ctrl+右箭头或Alt+F
+	WordBackward:            key.NewBinding(key.WithKeys("alt+left", "ctrl+left", "alt+b")),   // Alt+左箭头或Ctrl+左箭头或Alt+B
+	DeleteWordBackward:      key.NewBinding(key.WithKeys("alt+backspace", "ctrl+w")),          // Alt+退格键或Ctrl+W
+	DeleteWordForward:       key.NewBinding(key.WithKeys("alt+delete", "alt+d")),              // Alt+删除键或Alt+D
+	DeleteAfterCursor:       key.NewBinding(key.WithKeys("ctrl+k")),                           // Ctrl+K
+	DeleteBeforeCursor:      key.NewBinding(key.WithKeys("ctrl+u")),                           // Ctrl+U
+	DeleteCharacterBackward: key.NewBinding(key.WithKeys("backspace", "ctrl+h")),              // 退格键或Ctrl+H
+	DeleteCharacterForward:  key.NewBinding(key.WithKeys("delete", "ctrl+d")),                 // 删除键或Ctrl+D
+	LineStart:               key.NewBinding(key.WithKeys("home", "ctrl+a")),                   // Home键或Ctrl+A
+	LineEnd:                 key.NewBinding(key.WithKeys("end", "ctrl+e")),                    // End键或Ctrl+E
+	Paste:                   key.NewBinding(key.WithKeys("ctrl+v")),                           // Ctrl+V
+	AcceptSuggestion:        key.NewBinding(key.WithKeys("tab")),                              // Tab键
+	NextSuggestion:          key.NewBinding(key.WithKeys("down", "ctrl+n")),                   // 下箭头或Ctrl+N
+	PrevSuggestion:          key.NewBinding(key.WithKeys("up", "ctrl+p")),                     // 上箭头或Ctrl+P
 }
 
-// Model is the Bubble Tea model for this text input element.
+// Model 是文本输入元素的Bubble Tea模型
 type Model struct {
-	Err error
+	Err error // 验证错误
 
-	// General settings.
-	Prompt        string
-	Placeholder   string
-	EchoMode      EchoMode
-	EchoCharacter rune
-	Cursor        cursor.Model
+	// 常规设置
+	Prompt        string       // 提示符
+	Placeholder   string       // 占位符文本
+	EchoMode      EchoMode     // 回显模式
+	EchoCharacter rune         // 回显字符（用于密码模式）
+	Cursor        cursor.Model // 光标模型
 
-	// Deprecated: use [cursor.BlinkSpeed] instead.
+	// 已弃用：请使用[cursor.BlinkSpeed]代替
 	BlinkSpeed time.Duration
 
-	// Styles. These will be applied as inline styles.
+	// 样式。这些将作为内联样式应用
 	//
-	// For an introduction to styling with Lip Gloss see:
+	// 有关Lip Gloss样式的介绍，请参阅：
 	// https://github.com/charmbracelet/lipgloss
-	PromptStyle      lipgloss.Style
-	TextStyle        lipgloss.Style
-	PlaceholderStyle lipgloss.Style
-	CompletionStyle  lipgloss.Style
+	PromptStyle      lipgloss.Style // 提示符样式
+	TextStyle        lipgloss.Style // 文本样式
+	PlaceholderStyle lipgloss.Style // 占位符样式
+	CompletionStyle  lipgloss.Style // 自动补全样式
 
-	// Deprecated: use Cursor.Style instead.
+	// 已弃用：请使用Cursor.Style代替
 	CursorStyle lipgloss.Style
 
-	// CharLimit is the maximum amount of characters this input element will
-	// accept. If 0 or less, there's no limit.
+	// CharLimit 是此输入元素接受的最大字符数
+	// 如果为0或更小，则没有限制
 	CharLimit int
 
-	// Width is the maximum number of characters that can be displayed at once.
-	// It essentially treats the text field like a horizontally scrolling
-	// viewport. If 0 or less this setting is ignored.
+	// Width 是一次可以显示的最大字符数
+	// 它本质上将文本字段视为水平滚动的视口
+	// 如果为0或更小，则忽略此设置
 	Width int
 
-	// KeyMap encodes the keybindings recognized by the widget.
+	// KeyMap 是小部件识别的键绑定
 	KeyMap KeyMap
 
-	// Underlying text value.
+	// 底层文本值
 	value []rune
 
-	// focus indicates whether user input focus should be on this input
-	// component. When false, ignore keyboard input and hide the cursor.
+	// focus 表示用户输入焦点是否应在此输入组件上
+	// 当为false时，忽略键盘输入并隐藏光标
 	focus bool
 
-	// Cursor position.
+	// 光标位置
 	pos int
 
-	// Used to emulate a viewport when width is set and the content is
-	// overflowing.
-	offset      int
-	offsetRight int
+	// 当设置了宽度且内容溢出时，用于模拟视口
+	offset      int // 左偏移量
+	offsetRight int // 右偏移量
 
-	// Validate is a function that checks whether or not the text within the
-	// input is valid. If it is not valid, the `Err` field will be set to the
-	// error returned by the function. If the function is not defined, all
-	// input is considered valid.
+	// Validate 是一个函数，用于检查输入中的文本是否有效
+	// 如果无效，`Err`字段将设置为函数返回的错误
+	// 如果未定义该函数，则所有输入都被视为有效
 	Validate ValidateFunc
 
-	// rune sanitizer for input.
+	// 输入的符文清理器
 	rsan runeutil.Sanitizer
 
-	// Should the input suggest to complete
+	// 是否显示自动补全建议
 	ShowSuggestions bool
 
-	// suggestions is a list of suggestions that may be used to complete the
-	// input.
-	suggestions            [][]rune
-	matchedSuggestions     [][]rune
-	currentSuggestionIndex int
+	// suggestions 是可用于完成输入的建议列表
+	suggestions            [][]rune // 所有建议
+	matchedSuggestions     [][]rune // 匹配的建议
+	currentSuggestionIndex int      // 当前选中的建议索引
 }
 
-// New creates a new model with default settings.
+// New 创建一个具有默认设置的新模型
 func New() Model {
 	return Model{
-		Prompt:           "> ",
-		EchoCharacter:    '*',
-		CharLimit:        0,
-		PlaceholderStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
-		ShowSuggestions:  false,
-		CompletionStyle:  lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
-		Cursor:           cursor.New(),
-		KeyMap:           DefaultKeyMap,
+		Prompt:           "> ",                                                  // 默认提示符
+		EchoCharacter:    '*',                                                   // 默认回显字符（用于密码模式）
+		CharLimit:        0,                                                     // 无字符限制
+		PlaceholderStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("240")), // 占位符样式
+		ShowSuggestions:  false,                                                 // 默认不显示自动补全建议
+		CompletionStyle:  lipgloss.NewStyle().Foreground(lipgloss.Color("240")), // 自动补全样式
+		Cursor:           cursor.New(),                                          // 新的光标模型
+		KeyMap:           DefaultKeyMap,                                         // 默认键绑定
 
-		suggestions: [][]rune{},
-		value:       nil,
-		focus:       false,
-		pos:         0,
+		suggestions: [][]rune{}, // 空的建议列表
+		value:       nil,        // 空的文本值
+		focus:       false,      // 默认没有焦点
+		pos:         0,          // 默认光标位置在开头
 	}
 }
 

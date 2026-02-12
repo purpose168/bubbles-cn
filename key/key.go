@@ -1,6 +1,6 @@
-// Package key provides some types and functions for generating user-definable
-// keymappings useful in Bubble Tea components. There are a few different ways
-// you can define a keymapping with this package. Here's one example:
+// Package key 提供了一些类型和函数，用于生成用户可定义的按键映射，
+// 在 Bubble Tea 组件中非常有用。使用此包定义按键映射有几种不同的方法。
+// 以下是一个示例：
 //
 //	type KeyMap struct {
 //	    Up key.Binding
@@ -9,8 +9,8 @@
 //
 //	var DefaultKeyMap = KeyMap{
 //	    Up: key.NewBinding(
-//	        key.WithKeys("k", "up"),        // actual keybindings
-//	        key.WithHelp("↑/k", "move up"), // corresponding help text
+//	        key.WithKeys("k", "up"),        // 实际的按键绑定
+//	        key.WithHelp("↑/k", "move up"), // 对应的帮助文本
 //	    ),
 //	    Down: key.NewBinding(
 //	        key.WithKeys("j", "down"),
@@ -23,34 +23,31 @@
 //	    case tea.KeyMsg:
 //	        switch {
 //	        case key.Matches(msg, DefaultKeyMap.Up):
-//	            // The user pressed up
+//	            // 用户按下了上键
 //	        case key.Matches(msg, DefaultKeyMap.Down):
-//	            // The user pressed down
+//	            // 用户按下了下键
 //	        }
 //	    }
 //
 //	    // ...
 //	}
 //
-// The help information, which is not used in the example above, can be used
-// to render help text for keystrokes in your views.
+// 上面示例中未使用的帮助信息可用于在视图中渲染按键的帮助文本。
 package key
 
 import "fmt"
 
-// Binding describes a set of keybindings and, optionally, their associated
-// help text.
+// Binding 描述了一组按键绑定以及可选的相关帮助文本。
 type Binding struct {
-	keys     []string
-	help     Help
-	disabled bool
+	keys     []string // 按键列表
+	help     Help     // 帮助信息
+	disabled bool     // 是否禁用
 }
 
-// BindingOpt is an initialization option for a keybinding. It's used as an
-// argument to NewBinding.
+// BindingOpt 是按键绑定的初始化选项。它用作 NewBinding 的参数。
 type BindingOpt func(*Binding)
 
-// NewBinding returns a new keybinding from a set of BindingOpt options.
+// NewBinding 从一组 BindingOpt 选项返回一个新的按键绑定。
 func NewBinding(opts ...BindingOpt) Binding {
 	b := &Binding{}
 	for _, opt := range opts {
@@ -59,74 +56,72 @@ func NewBinding(opts ...BindingOpt) Binding {
 	return *b
 }
 
-// WithKeys initializes a keybinding with the given keystrokes.
+// WithKeys 使用给定的按键初始化按键绑定。
 func WithKeys(keys ...string) BindingOpt {
 	return func(b *Binding) {
 		b.keys = keys
 	}
 }
 
-// WithHelp initializes a keybinding with the given help text.
+// WithHelp 使用给定的帮助文本初始化按键绑定。
 func WithHelp(key, desc string) BindingOpt {
 	return func(b *Binding) {
 		b.help = Help{Key: key, Desc: desc}
 	}
 }
 
-// WithDisabled initializes a disabled keybinding.
+// WithDisabled 初始化一个已禁用的按键绑定。
 func WithDisabled() BindingOpt {
 	return func(b *Binding) {
 		b.disabled = true
 	}
 }
 
-// SetKeys sets the keys for the keybinding.
+// SetKeys 设置按键绑定的按键。
 func (b *Binding) SetKeys(keys ...string) {
 	b.keys = keys
 }
 
-// Keys returns the keys for the keybinding.
+// Keys 返回按键绑定的按键。
 func (b Binding) Keys() []string {
 	return b.keys
 }
 
-// SetHelp sets the help text for the keybinding.
+// SetHelp 设置按键绑定的帮助文本。
 func (b *Binding) SetHelp(key, desc string) {
 	b.help = Help{Key: key, Desc: desc}
 }
 
-// Help returns the Help information for the keybinding.
+// Help 返回按键绑定的帮助信息。
 func (b Binding) Help() Help {
 	return b.help
 }
 
-// Enabled returns whether or not the keybinding is enabled. Disabled
-// keybindings won't be activated and won't show up in help. Keybindings are
-// enabled by default.
+// Enabled 返回按键绑定是否启用。禁用的按键绑定不会被激活，也不会在帮助中显示。
+// 按键绑定默认是启用的。
 func (b Binding) Enabled() bool {
 	return !b.disabled && b.keys != nil
 }
 
-// SetEnabled enables or disables the keybinding.
+// SetEnabled 启用或禁用按键绑定。
 func (b *Binding) SetEnabled(v bool) {
 	b.disabled = !v
 }
 
-// Unbind removes the keys and help from this binding, effectively nullifying
-// it. This is a step beyond disabling it, since applications can enable
-// or disable key bindings based on application state.
+// Unbind 从绑定中移除按键和帮助，有效地使其无效。这比禁用它更进一步，
+// 因为应用程序可以根据应用程序状态启用或禁用按键绑定。
 func (b *Binding) Unbind() {
 	b.keys = nil
 	b.help = Help{}
 }
 
-// Help is help information for a given keybinding.
+// Help 是给定按键绑定的帮助信息。
 type Help struct {
-	Key  string
-	Desc string
+	Key  string // 按键
+	Desc string // 描述
 }
 
-// Matches checks if the given key matches the given bindings.
+// Matches 检查给定的按键是否匹配给定的绑定。
 func Matches[Key fmt.Stringer](k Key, b ...Binding) bool {
 	keys := k.String()
 	for _, binding := range b {

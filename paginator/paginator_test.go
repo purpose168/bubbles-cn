@@ -3,9 +3,10 @@ package paginator
 import (
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "github.com/purpose168/bubbletea-cn"
 )
 
+// TestNew 测试 New 函数创建新模型的功能
 func TestNew(t *testing.T) {
 	model := New()
 
@@ -32,17 +33,18 @@ func TestNew(t *testing.T) {
 	}
 }
 
+// TestSetTotalPages 测试 SetTotalPages 函数设置总页数的功能
 func TestSetTotalPages(t *testing.T) {
 	tests := []struct {
-		name         string
-		items        int // total no of items to be set
-		initialTotal int // intital total pages for the testcase
-		expected     int // expected value after SetTotalPages function call
+		name         string // 测试用例名称
+		items        int    // 要设置的项目总数
+		initialTotal int    // 测试用例的初始总页数
+		expected     int    // 调用 SetTotalPages 函数后的期望值
 	}{
-		{"Less than one page", 5, 1, 5},
-		{"Exactly one page", 10, 1, 10},
-		{"More than one page", 15, 1, 15},
-		{"negative value for page", -10, 1, 1},
+		{"Less than one page", 5, 1, 5},        // 少于一页
+		{"Exactly one page", 10, 1, 10},        // 恰好一页
+		{"More than one page", 15, 1, 15},      // 多于一页
+		{"negative value for page", -10, 1, 1}, // 页数为负值
 	}
 
 	for _, tt := range tests {
@@ -59,15 +61,16 @@ func TestSetTotalPages(t *testing.T) {
 	}
 }
 
+// TestPrevPage 测试 PrevPage 函数向前翻页的功能
 func TestPrevPage(t *testing.T) {
 	tests := []struct {
-		name       string
-		totalPages int // Total pages to be set for the testcase
-		page       int // intital page for test
-		expected   int
+		name       string // 测试用例名称
+		totalPages int    // 为测试用例设置的总页数
+		page       int    // 测试的初始页码
+		expected   int    // 期望的页码
 	}{
-		{"Go to previous page", 10, 1, 0},
-		{"Stay on first page", 5, 0, 0},
+		{"Go to previous page", 10, 1, 0}, // 转到上一页
+		{"Stay on first page", 5, 0, 0},   // 停留在第一页
 	}
 
 	for _, tt := range tests {
@@ -84,15 +87,16 @@ func TestPrevPage(t *testing.T) {
 	}
 }
 
+// TestNextPage 测试 NextPage 函数向后翻页的功能
 func TestNextPage(t *testing.T) {
 	tests := []struct {
-		name       string
-		totalPages int
-		page       int
-		expected   int
+		name       string // 测试用例名称
+		totalPages int    // 总页数
+		page       int    // 初始页码
+		expected   int    // 期望的页码
 	}{
-		{"Go to next page", 2, 0, 1},
-		{"Stay on last page", 2, 1, 1},
+		{"Go to next page", 2, 0, 1},   // 转到下一页
+		{"Stay on last page", 2, 1, 1}, // 停留在最后一页
 	}
 
 	for _, tt := range tests {
@@ -109,15 +113,16 @@ func TestNextPage(t *testing.T) {
 	}
 }
 
+// TestOnLastPage 测试 OnLastPage 函数判断是否在最后一页的功能
 func TestOnLastPage(t *testing.T) {
 	tests := []struct {
-		name       string
-		page       int
-		totalPages int
-		expected   bool
+		name       string // 测试用例名称
+		page       int    // 当前页码
+		totalPages int    // 总页数
+		expected   bool   // 期望的返回值
 	}{
-		{"On last page", 1, 2, true},
-		{"Not on last page", 0, 2, false},
+		{"On last page", 1, 2, true},      // 在最后一页
+		{"Not on last page", 0, 2, false}, // 不在最后一页
 	}
 
 	for _, tt := range tests {
@@ -133,15 +138,16 @@ func TestOnLastPage(t *testing.T) {
 	}
 }
 
+// TestOnFirstPage 测试 OnFirstPage 函数判断是否在第一页的功能
 func TestOnFirstPage(t *testing.T) {
 	tests := []struct {
-		name       string
-		page       int
-		totalPages int
-		expected   bool
+		name       string // 测试用例名称
+		page       int    // 当前页码
+		totalPages int    // 总页数
+		expected   bool   // 期望的返回值
 	}{
-		{"On first page", 0, 2, true},
-		{"Not on first page", 1, 2, false},
+		{"On first page", 0, 2, true},      // 在第一页
+		{"Not on first page", 1, 2, false}, // 不在第一页
 	}
 
 	for _, tt := range tests {
@@ -157,12 +163,13 @@ func TestOnFirstPage(t *testing.T) {
 	}
 }
 
+// TestItemsOnPage 测试 ItemsOnPage 函数返回当前页项目数量的功能
 func TestItemsOnPage(t *testing.T) {
 	testCases := []struct {
-		currentPage   int // current page to be set for the testcase
-		totalPages    int // Total pages to be set for the testcase
-		totalItems    int // Total items
-		expectedItems int // expected items on current page
+		currentPage   int // 为测试用例设置的当前页码
+		totalPages    int // 为测试用例设置的总页数
+		totalItems    int // 总项目数
+		expectedItems int // 当前页期望的项目数
 	}{
 		{1, 10, 10, 1},
 		{3, 10, 10, 1},

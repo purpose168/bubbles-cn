@@ -4,15 +4,15 @@
   <img src="https://stuff.charm.sh/bubbles/bubbles-github.png" width="233" alt="Bubbles 标志">
 </p>
 
-[![最新版本](https://img.shields.io/github/release/charmbracelet/bubbles.svg)](https://github.com/charmbracelet/bubbles/releases)
+[![最新版本](https://img.shields.io/github/release/charmbracelet/bubbles.svg)](https://github.com/purpose168/bubbles-cn/releases)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/charmbracelet/bubbles)
-[![构建状态](https://github.com/charmbracelet/bubbles/workflows/build/badge.svg)](https://github.com/charmbracelet/bubbles/actions)
+[![构建状态](https://github.com/purpose168/bubbles-cn/workflows/build/badge.svg)](https://github.com/purpose168/bubbles-cn/actions)
 [![Go ReportCard](https://goreportcard.com/badge/charmbracelet/bubbles)](https://goreportcard.com/report/charmbracelet/bubbles)
 
 Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于 [Glow][glow] 和 [许多其他应用程序][otherstuff]。
 
 [glow]: https://github.com/charmbracelet/glow
-[otherstuff]: https://github.com/charmbracelet/bubbletea/#bubble-tea-in-the-wild
+[otherstuff]: https://github.com/purpose168/bubbletea-cn/#bubble-tea-in-the-wild
 
 ## Spinner
 
@@ -20,8 +20,8 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个加载指示器，用于表示正在进行某种操作。有几个默认的样式，但你也可以传递自己的"帧"。
 
-- [示例代码，基本 spinner](https://github.com/charmbracelet/bubbletea/blob/main/examples/spinner/main.go)
-- [示例代码，各种 spinner](https://github.com/charmbracelet/bubbletea/blob/main/examples/spinners/main.go)
+- [示例代码，基本 spinner](https://github.com/purpose168/bubbletea-cn/blob/main/examples/spinner/main.go)
+- [示例代码，各种 spinner](https://github.com/purpose168/bubbletea-cn/blob/main/examples/spinners/main.go)
 
 ## 文本输入
 
@@ -29,8 +29,8 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个文本输入字段，类似于 HTML 中的 `<input type="text">`。支持 Unicode、粘贴、当值超过元素宽度时的原位滚动，以及许多自定义选项。
 
-- [示例代码，单个字段](https://github.com/charmbracelet/bubbletea/blob/main/examples/textinput/main.go)
-- [示例代码，多个字段](https://github.com/charmbracelet/bubbletea/blob/main/examples/textinputs/main.go)
+- [示例代码，单个字段](https://github.com/purpose168/bubbletea-cn/blob/main/examples/textinput/main.go)
+- [示例代码，多个字段](https://github.com/purpose168/bubbletea-cn/blob/main/examples/textinputs/main.go)
 
 ## 文本区域
 
@@ -38,8 +38,8 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个文本区域字段，类似于 HTML 中的 `<textarea />`。允许跨多行输入。支持 Unicode、粘贴、当值超过元素宽度和高度时的垂直滚动，以及许多自定义选项。
 
-- [示例代码，聊天输入](https://github.com/charmbracelet/bubbletea/blob/main/examples/chat/main.go)
-- [示例代码，故事时间输入](https://github.com/charmbracelet/bubbletea/blob/main/examples/textarea/main.go)
+- [示例代码，聊天输入](https://github.com/purpose168/bubbletea-cn/blob/main/examples/chat/main.go)
+- [示例代码，故事时间输入](https://github.com/purpose168/bubbletea-cn/blob/main/examples/textarea/main.go)
 
 ## 表格
 
@@ -47,7 +47,7 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个用于显示和导航表格数据（列和行）的组件。支持垂直滚动和许多自定义选项。
 
-- [示例代码，国家和人口](https://github.com/charmbracelet/bubbletea/blob/main/examples/table/main.go)
+- [示例代码，国家和人口](https://github.com/purpose168/bubbletea-cn/blob/main/examples/table/main.go)
 
 ## 进度条
 
@@ -55,8 +55,8 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个简单、可定制的进度指示器，可通过 [Harmonica][harmonica] 实现可选的动画效果。支持纯色和渐变填充。空和填充的字符可以设置为你喜欢的任何内容。百分比读数可自定义，也可以完全省略。
 
-- [动画示例](https://github.com/charmbracelet/bubbletea/blob/main/examples/progress-animated/main.go)
-- [静态示例](https://github.com/charmbracelet/bubbletea/blob/main/examples/progress-static/main.go)
+- [动画示例](https://github.com/purpose168/bubbletea-cn/blob/main/examples/progress-animated/main.go)
+- [静态示例](https://github.com/purpose168/bubbletea-cn/blob/main/examples/progress-static/main.go)
 
 [harmonica]: https://github.com/charmbracelet/harmonica
 
@@ -66,7 +66,7 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个用于处理分页逻辑并可选绘制分页 UI 的组件。支持"点样式"分页（类似于你在 iOS 上看到的）和数字页码，但你也可以仅使用此组件的逻辑并以任何你喜欢的方式可视化分页。
 
-- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/paginator/main.go)
+- [示例代码](https://github.com/purpose168/bubbletea-cn/blob/main/examples/paginator/main.go)
 
 ## 视口
 
@@ -74,7 +74,7 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个用于垂直滚动内容的视口。可选包含标准分页器键绑定和鼠标滚轮支持。对于使用备用屏幕缓冲区的应用程序，提供高性能模式。
 
-- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/pager/main.go)
+- [示例代码](https://github.com/purpose168/bubbletea-cn/blob/main/examples/pager/main.go)
 
 此组件与 [Reflow][reflow] 配合使用效果良好，可实现 ANSI 感知的缩进和文本换行。
 
@@ -86,9 +86,9 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个可定制、功能齐全的组件，用于浏览一组项目。具有分页、模糊过滤、自动生成帮助、活动指示器和状态消息等功能，所有这些功能都可以根据需要启用和禁用。源自 [Glow][glow]。
 
-- [示例代码，默认列表](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-default/main.go)
-- [示例代码，简单列表](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-simple/main.go)
-- [示例代码，所有功能](https://github.com/charmbracelet/bubbletea/blob/main/examples/list-fancy/main.go)
+- [示例代码，默认列表](https://github.com/purpose168/bubbletea-cn/blob/main/examples/list-default/main.go)
+- [示例代码，简单列表](https://github.com/purpose168/bubbletea-cn/blob/main/examples/list-simple/main.go)
+- [示例代码，所有功能](https://github.com/purpose168/bubbletea-cn/blob/main/examples/list-fancy/main.go)
 
 ## 文件选择器
 
@@ -96,7 +96,7 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个用于从文件系统中选择文件的可定制组件。可以浏览目录并选择文件，可选限制为特定文件扩展名。
 
-- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/file-picker/main.go)
+- [示例代码](https://github.com/purpose168/bubbletea-cn/blob/main/examples/file-picker/main.go)
 
 ## 计时器
 
@@ -104,7 +104,7 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 <img src="https://stuff.charm.sh/bubbles-examples/timer.gif" width="400" alt="计时器示例">
 
-- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/timer/main.go)
+- [示例代码](https://github.com/purpose168/bubbletea-cn/blob/main/examples/timer/main.go)
 
 ## 秒表
 
@@ -112,7 +112,7 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个简单、灵活的计时组件。更新频率和输出可以根据你的需要进行自定义。
 
-- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/stopwatch/main.go)
+- [示例代码](https://github.com/purpose168/bubbletea-cn/blob/main/examples/stopwatch/main.go)
 
 ## 帮助
 
@@ -120,7 +120,7 @@ Bubble Tea 应用程序的一些组件。这些组件已在生产环境中用于
 
 一个可定制的水平迷你帮助视图，可根据你的键绑定自动生成。它具有单行和多行模式，用户可以选择在两者之间切换。如果终端对于内容来说太宽，它会优雅地截断。
 
-- [示例代码](https://github.com/charmbracelet/bubbletea/blob/main/examples/help/main.go)
+- [示例代码](https://github.com/purpose168/bubbletea-cn/blob/main/examples/help/main.go)
 
 ## 按键
 
@@ -168,7 +168,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 请参阅 [contributing][contribute]。
 
-[contribute]: https://github.com/charmbracelet/bubbles/contribute
+[contribute]: https://github.com/purpose168/bubbles-cn/contribute
 
 ## 反馈
 
@@ -180,12 +180,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 ## 许可证
 
-[MIT](https://github.com/charmbracelet/bubbletea/raw/main/LICENSE)
+[MIT](https://github.com/purpose168/bubbletea-cn/raw/main/LICENSE)
 
----
 
-属于 [Charm](https://charm.sh)。
-
-<a href="https://charm.sh/"><img alt="Charm 标志" src="https://stuff.charm.sh/charm-banner-next.jpg" width="400"></a>
-
-Charm热爱开源 • Charm loves open source

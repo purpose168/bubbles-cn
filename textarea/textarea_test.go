@@ -7,203 +7,245 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/aymanbagabas/go-udiff"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
+	tea "github.com/purpose168/bubbletea-cn"
+	"github.com/purpose168/charm-experimental-packages-cn/ansi"
+	lipgloss "github.com/purpose168/lipgloss-cn"
 )
 
+// 测试垂直滚动功能
+// 验证文本区域在内容超出可视范围时能否正确滚动显示
 func TestVerticalScrolling(t *testing.T) {
 	textarea := newTextArea()
 	textarea.Prompt = ""
 	textarea.ShowLineNumbers = false
-	textarea.SetHeight(1)
-	textarea.SetWidth(20)
-	textarea.CharLimit = 100
+	textarea.SetHeight(1)    // 设置文本区域高度为1行
+	textarea.SetWidth(20)    // 设置文本区域宽度为20个字符
+	textarea.CharLimit = 100 // 设置字符限制为100
 
 	textarea, _ = textarea.Update(nil)
 
+	// 输入一段超长文本，超出文本区域宽度
 	input := "This is a really long line that should wrap around the text area."
 
+	// 逐个字符输入文本
 	for _, k := range input {
 		textarea, _ = textarea.Update(keyPress(k))
 	}
 
 	view := textarea.View()
 
-	// The view should contain the first "line" of the input.
+	// 验证视图是否显示输入的第一行
 	if !strings.Contains(view, "This is a really") {
 		t.Log(view)
-		t.Error("Text area did not render the input")
+		t.Error("文本区域未正确渲染输入内容")
 	}
 
-	// But we should be able to scroll to see the next line.
-	// Let's scroll down for each line to view the full input.
-	lines := []string{
+	// 验证能否通过滚动查看后续内容
+	// 逐行向下滚动以查看完整输入内容
+	expectedLines := []string{
 		"long line that",
 		"should wrap around",
 		"the text area.",
 	}
-	for _, line := range lines {
-		textarea.viewport.ScrollDown(1)
+	for _, line := range expectedLines {
+		textarea.viewport.ScrollDown(1) // 向下滚动一行
 		view = textarea.View()
 		if !strings.Contains(view, line) {
 			t.Log(view)
-			t.Error("Text area did not render the correct scrolled input")
+			t.Error("文本区域未正确渲染滚动后的内容")
 		}
 	}
 }
 
+// 测试自动换行溢出处理
+// 验证当用户在已填满的文本区域中插入单词导致级联换行时，能否正确处理最后一行的溢出
 func TestWordWrapOverflowing(t *testing.T) {
-	// An interesting edge case is when the user enters many words that fill up
-	// the text area and then goes back up and inserts a few words which causes
-	// a cascading wrap and causes an overflow of the last line.
+	// 一个有趣的边界情况是：用户输入大量单词填满文本区域后，回到开头插入几个单词，
+	// 这会导致级联换行并可能使最后一行溢出。
 	//
-	// In this case, we should not let the user insert more words if, after the
-	// entire wrap is complete, the last line is overflowing.
+	// 在这种情况下，如果整个换行完成后最后一行仍然溢出，我们应该阻止用户继续插入单词。
 	textarea := newTextArea()
 
-	textarea.SetHeight(3)
-	textarea.SetWidth(20)
-	textarea.CharLimit = 500
+	textarea.SetHeight(3)    // 设置文本区域高度为3行
+	textarea.SetWidth(20)    // 设置文本区域宽度为20个字符
+	textarea.CharLimit = 500 // 设置字符限制为500
 
 	textarea, _ = textarea.Update(nil)
 
+	// 输入重复的"Testing"单词，填满文本区域
 	input := "Testing Testing Testing Testing Testing Testing Testing Testing"
 
+	// 逐个字符输入文本
 	for _, k := range input {
 		textarea, _ = textarea.Update(keyPress(k))
-		textarea.View()
+		textarea.View() // 触发视图更新
 	}
 
-	// We have essentially filled the text area with input.
-	// Let's see if we can cause wrapping to overflow the last line.
-	textarea.row = 0
-	textarea.col = 0
+	// 现在文本区域已被填满
+	// 尝试在开头插入单词，看是否会导致最后一行溢出
+	textarea.row = 0 // 将光标移到第一行
+	textarea.col = 0 // 将光标移到行首
 
-	input = "Testing"
+	input = "Testing" // 要插入的单词
 
+	// 逐个字符插入单词
 	for _, k := range input {
 		textarea, _ = textarea.Update(keyPress(k))
-		textarea.View()
+		textarea.View() // 触发视图更新
 	}
 
+	// 检查最后一行的宽度是否超过限制
 	lastLineWidth := textarea.LineInfo().Width
 	if lastLineWidth > 20 {
 		t.Log(lastLineWidth)
 		t.Log(textarea.View())
-		t.Fail()
+		t.Fail() // 如果超过宽度则测试失败
 	}
 }
 
+// 测试软换行对值的影响
+// 验证软换行不会改变文本区域的实际值（仅影响显示）
 func TestValueSoftWrap(t *testing.T) {
 	textarea := newTextArea()
-	textarea.SetWidth(16)
-	textarea.SetHeight(10)
-	textarea.CharLimit = 500
+	textarea.SetWidth(16)    // 设置文本区域宽度为16个字符
+	textarea.SetHeight(10)   // 设置文本区域高度为10行
+	textarea.CharLimit = 500 // 设置字符限制为500
 
 	textarea, _ = textarea.Update(nil)
 
+	// 输入重复的"Testing"单词，触发软换行
 	input := "Testing Testing Testing Testing Testing Testing Testing Testing"
 
+	// 逐个字符输入文本
 	for _, k := range []rune(input) {
 		textarea, _ = textarea.Update(keyPress(k))
-		textarea.View()
+		textarea.View() // 触发视图更新，触发软换行
 	}
 
+	// 获取文本区域的实际值
 	value := textarea.Value()
+	// 验证实际值是否与输入一致（软换行不影响实际值）
 	if value != input {
 		t.Log(value)
 		t.Log(input)
-		t.Fatal("The text area does not have the correct value")
+		t.Fatal("文本区域的实际值不正确")
 	}
 }
 
+// 测试SetValue方法
+// 验证SetValue方法能否正确设置文本区域的值，并在设置后正确定位光标
 func TestSetValue(t *testing.T) {
 	textarea := newTextArea()
+	// 设置多行文本，包含三个单词，每行一个
 	textarea.SetValue(strings.Join([]string{"Foo", "Bar", "Baz"}, "\n"))
 
+	// 验证光标位置：应该在第2行（索引从0开始），第3列（"Baz"的末尾）
 	if textarea.row != 2 && textarea.col != 3 {
 		t.Log(textarea.row, textarea.col)
-		t.Fatal("Cursor Should be on row 2 column 3 after inserting 2 new lines")
+		t.Fatal("插入2个新行后，光标应该位于第2行第3列")
 	}
 
+	// 获取文本区域的实际值
 	value := textarea.Value()
+	// 验证实际值是否与预期一致
 	if value != "Foo\nBar\nBaz" {
-		t.Fatal("Value should be Foo\nBar\nBaz")
+		t.Fatal("文本区域的值应该是Foo\nBar\nBaz")
 	}
 
-	// SetValue should reset text area
-	textarea.SetValue("Test")
-	value = textarea.Value()
+	// 验证SetValue方法是否会重置文本区域
+	textarea.SetValue("Test") // 设置新值
+	value = textarea.Value()  // 获取新值
 	if value != "Test" {
 		t.Log(value)
-		t.Fatal("Text area was not reset when SetValue() was called")
+		t.Fatal("调用SetValue()时文本区域未正确重置")
 	}
 }
 
+// 测试InsertString方法
+// 验证InsertString方法能否在指定位置正确插入字符串
 func TestInsertString(t *testing.T) {
 	textarea := newTextArea()
 
-	// Insert some text
+	// 输入初始文本
 	input := "foo baz"
 
+	// 逐个字符输入文本
 	for _, k := range []rune(input) {
 		textarea, _ = textarea.Update(keyPress(k))
 	}
 
-	// Put cursor in the middle of the text
+	// 将光标移到文本中间（"foo "和"baz"之间）
 	textarea.col = 4
 
+	// 在光标位置插入字符串"bar "
 	textarea.InsertString("bar ")
 
+	// 获取文本区域的实际值
 	value := textarea.Value()
+	// 验证插入后的文本是否正确
 	if value != "foo bar baz" {
 		t.Log(value)
-		t.Fatal("Expected insert string to insert bar between foo and baz")
+		t.Fatal("InsertString方法应该在foo和baz之间插入bar")
 	}
 }
 
+// 测试表情符号处理
+// 验证文本区域能否正确处理表情符号（双宽度字符）
 func TestCanHandleEmoji(t *testing.T) {
 	textarea := newTextArea()
+	// 输入单个奶茶表情符号
 	input := "🧋"
 
+	// 逐个字符输入文本
 	for _, k := range []rune(input) {
 		textarea, _ = textarea.Update(keyPress(k))
 	}
 
+	// 获取文本区域的实际值
 	value := textarea.Value()
+	// 验证表情符号是否正确插入
 	if value != input {
 		t.Log(value)
-		t.Fatal("Expected emoji to be inserted")
+		t.Fatal("应该正确插入表情符号")
 	}
 
+	// 输入三个奶茶表情符号
 	input = "🧋🧋🧋"
 
+	// 使用SetValue方法设置值
 	textarea.SetValue(input)
 
+	// 获取文本区域的实际值
 	value = textarea.Value()
+	// 验证表情符号是否正确插入
 	if value != input {
 		t.Log(value)
-		t.Fatal("Expected emoji to be inserted")
+		t.Fatal("应该正确插入表情符号")
 	}
 
+	// 验证光标位置：应该在第3个字符（表情符号）的末尾
 	if textarea.col != 3 {
 		t.Log(textarea.col)
-		t.Fatal("Expected cursor to be on the third character")
+		t.Fatal("光标应该位于第3个字符的位置")
 	}
 
+	// 验证字符偏移量：每个表情符号占2个字符位置，3个表情符号占6个字符位置
 	if charOffset := textarea.LineInfo().CharOffset; charOffset != 6 {
 		t.Log(charOffset)
-		t.Fatal("Expected cursor to be on the sixth character")
+		t.Fatal("光标应该位于第6个字符的位置")
 	}
 }
 
+// 测试垂直导航时光标水平位置保持
+// 验证在垂直导航（上下箭头）时，光标能否保持相同的视觉列位置（考虑双宽度字符）
 func TestVerticalNavigationKeepsCursorHorizontalPosition(t *testing.T) {
 	textarea := newTextArea()
-	textarea.SetWidth(20)
+	textarea.SetWidth(20) // 设置文本区域宽度为20个字符
 
+	// 设置包含双宽度字符（中文）和单宽度字符（英文）的文本
 	textarea.SetValue(strings.Join([]string{"你好你好", "Hello"}, "\n"))
 
+	// 将光标移到第一行的第2列
 	textarea.row = 0
 	textarea.col = 2
 
@@ -211,137 +253,147 @@ func TestVerticalNavigationKeepsCursorHorizontalPosition(t *testing.T) {
 	// Hell|o
 	// 1234|
 
-	// Let's imagine our cursor is on the first line where the pipe is.
-	// We press the down arrow to get to the next line.
-	// The issue is that if we keep the cursor on the same column, the cursor will jump to after the `e`.
+	// 假设我们的光标在第一行的管道位置。
+	// 我们按下向下箭头键移动到下一行。
+	// 问题是，如果我们保持光标在相同的列，光标会跳到`e`之后。
 	//
 	// 你好|你好
 	// He|llo
 	//
-	// But this is wrong because visually we were at the 4th character due to
-	// the first line containing double-width runes.
-	// We want to keep the cursor on the same visual column.
+	// 但这是错误的，因为视觉上我们在第4个字符的位置，
+	// 因为第一行包含双宽度字符。
+	// 我们希望光标保持在相同的视觉列。
 	//
 	// 你好|你好
 	// Hell|o
 	//
-	// This test ensures that the cursor is kept on the same visual column by
-	// ensuring that the column offset goes from 2 -> 4.
+	// 这个测试通过确保列偏移从2 -> 4，来验证光标保持在相同的视觉列。
 
+	// 获取当前行信息
 	lineInfo := textarea.LineInfo()
+	// 验证光标位置：应该在第4个字符（因为第一行有两个双宽度字符）
 	if lineInfo.CharOffset != 4 || lineInfo.ColumnOffset != 2 {
 		t.Log(lineInfo.CharOffset)
 		t.Log(lineInfo.ColumnOffset)
-		t.Fatal("Expected cursor to be on the fourth character because there are two double width runes on the first line.")
+		t.Fatal("光标应该位于第4个字符的位置，因为第一行有两个双宽度字符。")
 	}
 
+	// 发送向下箭头键消息
 	downMsg := tea.KeyMsg{Type: tea.KeyDown, Alt: false, Runes: []rune{}}
 	textarea, _ = textarea.Update(downMsg)
 
+	// 获取新的行信息
 	lineInfo = textarea.LineInfo()
+	// 验证光标位置：应该在第4个字符（因为我们从第一行下来）
 	if lineInfo.CharOffset != 4 || lineInfo.ColumnOffset != 4 {
 		t.Log(lineInfo.CharOffset)
 		t.Log(lineInfo.ColumnOffset)
-		t.Fatal("Expected cursor to be on the fourth character because we came down from the first line.")
+		t.Fatal("光标应该位于第4个字符的位置，因为我们从第一行下来。")
 	}
 }
 
+// 测试垂直导航时记住水平位置
+// 验证在垂直导航时能否记住最后停留的水平位置，以及在水平移动后能否重置该位置
 func TestVerticalNavigationShouldRememberPositionWhileTraversing(t *testing.T) {
 	textarea := newTextArea()
-	textarea.SetWidth(40)
+	textarea.SetWidth(40) // 设置文本区域宽度为40个字符
 
-	// Let's imagine we have a text area with the following content:
+	// 假设我们有一个包含以下内容的文本区域：
 	//
 	// Hello
 	// World
 	// This is a long line.
 	//
-	// If we are at the end of the last line and go up, we should be at the end
-	// of the second line.
-	// And, if we go up again we should be at the end of the first line.
-	// But, if we go back down twice, we should be at the end of the last line
-	// again and not the fifth (length of second line) character of the last line.
+	// 如果我们在最后一行的末尾并向上移动，应该到达第二行的末尾。
+	// 如果再次向上移动，应该到达第一行的末尾。
+	// 但如果我们再次向下移动两次，应该回到最后一行的末尾，
+	// 而不是最后一行的第5个字符（第二行的长度）的位置。
 	//
-	// In other words, we should remember the last horizontal position while
-	// traversing vertically.
+	// 换句话说，我们在垂直导航时应该记住最后停留的水平位置。
 
+	// 设置多行文本，包含不同长度的行
 	textarea.SetValue(strings.Join([]string{"Hello", "World", "This is a long line."}, "\n"))
 
-	// We are at the end of the last line.
+	// 验证光标位置：应该在最后一行的第20个字符的位置
 	if textarea.col != 20 || textarea.row != 2 {
 		t.Log(textarea.col)
-		t.Fatal("Expected cursor to be on the 20th character of the last line")
+		t.Fatal("光标应该位于最后一行的第20个字符的位置")
 	}
 
-	// Let's go up.
+	// 向上移动一行
 	upMsg := tea.KeyMsg{Type: tea.KeyUp, Alt: false, Runes: []rune{}}
 	textarea, _ = textarea.Update(upMsg)
 
-	// We should be at the end of the second line.
+	// 验证光标位置：应该在第二行的第5个字符的位置（"World"的末尾）
 	if textarea.col != 5 || textarea.row != 1 {
 		t.Log(textarea.col)
-		t.Fatal("Expected cursor to be on the 5th character of the second line")
+		t.Fatal("光标应该位于第二行的第5个字符的位置")
 	}
 
-	// And, again.
+	// 再次向上移动一行
 	textarea, _ = textarea.Update(upMsg)
 
-	// We should be at the end of the first line.
+	// 验证光标位置：应该在第一行的第5个字符的位置（"Hello"的末尾）
 	if textarea.col != 5 || textarea.row != 0 {
 		t.Log(textarea.col)
-		t.Fatal("Expected cursor to be on the 5th character of the first line")
+		t.Fatal("光标应该位于第一行的第5个字符的位置")
 	}
 
-	// Let's go down, twice.
+	// 向下移动两行
 	downMsg := tea.KeyMsg{Type: tea.KeyDown, Alt: false, Runes: []rune{}}
 	textarea, _ = textarea.Update(downMsg)
 	textarea, _ = textarea.Update(downMsg)
 
-	// We should be at the end of the last line.
+	// 验证光标位置：应该回到最后一行的第20个字符的位置
 	if textarea.col != 20 || textarea.row != 2 {
 		t.Log(textarea.col)
-		t.Fatal("Expected cursor to be on the 20th character of the last line")
+		t.Fatal("光标应该位于最后一行的第20个字符的位置")
 	}
 
-	// Now, for correct behavior, if we move right or left, we should forget
-	// (reset) the saved horizontal position. Since we assume the user wants to
-	// keep the cursor where it is horizontally. This is how most text areas
-	// work.
+	// 现在，为了正确的行为，如果我们左右移动光标，应该忘记（重置）保存的水平位置。
+	// 因为我们假设用户希望将光标保持在当前的水平位置。这是大多数文本区域的工作方式。
 
+	// 向上移动一行
 	textarea, _ = textarea.Update(upMsg)
+	// 向左移动一个字符
 	leftMsg := tea.KeyMsg{Type: tea.KeyLeft, Alt: false, Runes: []rune{}}
 	textarea, _ = textarea.Update(leftMsg)
 
+	// 验证光标位置：应该在第二行的第4个字符的位置
 	if textarea.col != 4 || textarea.row != 1 {
 		t.Log(textarea.col)
-		t.Fatal("Expected cursor to be on the 5th character of the second line")
+		t.Fatal("光标应该位于第二行的第4个字符的位置")
 	}
 
-	// Going down now should keep us at the 4th column since we moved left and
-	// reset the horizontal position saved state.
+	// 现在向下移动应该保持在第4列，因为我们已经向左移动并重置了水平位置的保存状态。
 	textarea, _ = textarea.Update(downMsg)
+	// 验证光标位置：应该在最后一行的第4个字符的位置
 	if textarea.col != 4 || textarea.row != 2 {
 		t.Log(textarea.col)
-		t.Fatal("Expected cursor to be on the 4th character of the last line")
+		t.Fatal("光标应该位于最后一行的第4个字符的位置")
 	}
 }
 
+// 测试视图渲染
+// 验证文本区域在不同配置下能否正确渲染视图
 func TestView(t *testing.T) {
-	t.Parallel()
+	t.Parallel() // 并行运行测试
 
+	// 定义期望结果结构体
 	type want struct {
-		view      string
-		cursorRow int
-		cursorCol int
+		view      string // 期望的视图内容
+		cursorRow int    // 期望的光标行
+		cursorCol int    // 期望的光标列
 	}
 
+	// 定义测试用例
 	tests := []struct {
-		name      string
-		modelFunc func(Model) Model
-		want      want
+		name      string            // 测试名称
+		modelFunc func(Model) Model // 模型配置函数
+		want      want              // 期望结果
 	}{
 		{
-			name: "placeholder",
+			name: "placeholder", // 占位符测试
 			want: want{
 				view: heredoc.Doc(`
 					>   1 Hello, World!
@@ -354,9 +406,9 @@ func TestView(t *testing.T) {
 			},
 		},
 		{
-			name: "single line",
+			name: "single line", // 单行文本测试
 			modelFunc: func(m Model) Model {
-				m.SetValue("the first line")
+				m.SetValue("the first line") // 设置单行文本
 
 				return m
 			},
@@ -369,8 +421,8 @@ func TestView(t *testing.T) {
 					>
 					>
 				`),
-				cursorRow: 0,
-				cursorCol: 14,
+				cursorRow: 0,  // 期望光标在第0行
+				cursorCol: 14, // 期望光标在第14列
 			},
 		},
 		{
