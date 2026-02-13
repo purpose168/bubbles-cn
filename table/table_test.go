@@ -149,7 +149,7 @@ func TestNew(t *testing.T) {
 				styles:   DefaultStyles(),
 
 				// Modified fields 修改的字段
-				styles: Styles{},
+				// 已移除重复的 styles 字段赋值，因在上一层已赋值
 			},
 		},
 		"WithKeyMap": { // 设置键映射
